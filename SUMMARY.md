@@ -1,11 +1,18 @@
 # Project Summary: Insurance Policy Comparison Tool
 
+## Current Architecture (Updated)
+
+This is a **two-service application**:
+
+1. **Python Backend (FastAPI)** - Handles PDF parsing using pdfplumber
+2. **React Frontend (TypeScript)** - Handles UI and display
+
 ## What Was Built
 
-A fully functional web-based insurance policy comparison tool that allows brokers and clients to:
+A web-based insurance policy comparison tool with:
 
 1. **Upload two policy PDFs** (typically last year vs. this year)
-2. **Automatically extract key dollar amounts** (sums insured and premiums)
+2. **Python-powered PDF extraction** (using pdfplumber for robust table parsing)
 3. **View side-by-side comparison** with color-coded increases and decreases
 4. **Export structured data** as JSON for further analysis
 

@@ -1,27 +1,78 @@
 # Quick Start Guide
 
-## Get Started in 60 Seconds
+## Important: Two-Service Architecture
 
-### 1. Install Dependencies
+This app requires **TWO services running**:
+1. **Python Backend** (PDF parsing)
+2. **React Frontend** (UI)
+
+## Local Development Setup
+
+### 1. Start Python Backend
+
 ```bash
-npm install
+cd python-backend
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python main.py
 ```
 
-### 2. Start Development Server
+Backend runs on: http://localhost:8000
+
+### 2. Start Frontend (New Terminal)
+
 ```bash
+# From project root
+npm install
 npm run dev
 ```
 
-### 3. Open Browser
-Navigate to `http://localhost:5173`
+Frontend runs on: http://localhost:5173
 
-### 4. Upload Two PDFs
+### 3. Upload Two PDFs
 - Click left panel → select older policy (Year A)
 - Click right panel → select newer policy (Year B)
 
-### 5. View Comparison
+### 4. View Comparison
 - See side-by-side comparison with color-coded changes
 - Download JSON data for further analysis
+
+## Deploy to Production
+
+### Deploy Python Backend to Railway
+
+1. **Push to GitHub**:
+   ```bash
+   git add .
+   git commit -m "Add Python backend"
+   git push
+   ```
+
+2. **In Railway Dashboard**:
+   - New Project → Deploy from GitHub
+   - Select your repo
+   - Set **Root Directory**: `python-backend`
+   - Deploy
+   - Copy your Railway URL (e.g., `https://your-app.railway.app`)
+
+3. **Update Frontend `.env`**:
+   ```bash
+   VITE_PYTHON_API_URL=https://your-app.railway.app
+   ```
+
+### Deploy Frontend
+
+**Option A: Deploy to Railway (Same Project)**
+- Add new service from same GitHub repo
+- Root directory: `.` (project root)
+- Build: `npm install && npm run build`
+- Start: `npx vite preview --port $PORT --host`
+
+**Option B: Deploy to Vercel/Netlify**
+- Build command: `npm run build`
+- Output directory: `dist`
+- Add environment variable: `VITE_PYTHON_API_URL`
 
 ## What You'll See
 
