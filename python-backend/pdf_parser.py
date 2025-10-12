@@ -1,11 +1,98 @@
 import re
-import pdfplumber
 from io import BytesIO
-from typing import Dict, Any, Optional
-import logging
+from typing import Dict, Any, List, Optional
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+import pdfplumber
+try:  # pragma: no cover - optional dependency
+    import structlog
+
+    logger = structlog.get_logger(__name__)
+except Exception:  # pragma: no cover - fallback to stdlib logging
+    import logging
+
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+
+from ucc.models_ucc import Clause
+from ucc.normalization import RawClauseBlock, normalise_blocks
+
+MAX_CLAUSES = 3000
+
+
+def _split_page_into_blocks(text: str) -> List[str]:
+    """Split page text into blocks separated by blank lines."""
+
+    lines = (text or "").splitlines()
+    blocks: List[str] = []
+    current: List[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            if current:
+                blocks.append("\n".join(current).strip())
+                current = []
+            continue
+        if _is_heading(stripped) and current:
+            blocks.append("\n".join(current).strip())
+            current = [stripped]
+        else:
+            current.append(stripped)
+    if current:
+        blocks.append("\n".join(current).strip())
+    return [block for block in blocks if block]
+
+
+def _is_heading(line: str) -> bool:
+    """Determine whether a line is likely to be a heading."""
+
+    if not line:
+        return False
+    stripped = line.strip()
+    if len(stripped) <= 3:
+        return False
+    upper_ratio = sum(1 for c in stripped if c.isupper()) / max(len(stripped), 1)
+    if upper_ratio > 0.65:
+        return True
+    if stripped.endswith(":"):
+        return True
+    if re.match(r"^(\d+(?:\.\d+)*)\.?(?:\s+.+)?$", stripped):
+        return True
+    tokens = stripped.split()
+    if len(tokens) <= 4 and all(token[:1].isupper() for token in tokens if token):
+        return True
+    return False
+
+
+def _update_section_stack(stack: List[str], heading: str) -> List[str]:
+    """Update the current section stack with a new heading."""
+
+    heading = re.sub(r"[:]+$", "", heading).strip()
+    if not heading:
+        return stack
+    tokens = heading.split()
+    numeric_prefix = tokens[0] if tokens else ""
+    if re.match(r"\d+(\.\d+)*", numeric_prefix):
+        depth = numeric_prefix.count(".") + 1
+        cleaned_heading = " ".join(tokens[1:]) or heading
+    else:
+        depth = 1
+        cleaned_heading = heading
+    new_stack = stack[: depth - 1]
+    new_stack.append(cleaned_heading)
+    return new_stack
+
+
+def _estimate_confidence(text: str) -> float:
+    """Heuristic confidence based on token count and formatting."""
+
+    token_count = len(text.split())
+    if token_count >= 80:
+        return 0.95
+    if token_count >= 40:
+        return 0.9
+    if token_count >= 10:
+        return 0.85
+    return 0.7
 
 def parse_policy_pdf(pdf_bytes: bytes) -> Dict[str, Any]:
     """
@@ -205,3 +292,59 @@ def extract_premium_table(text: str, pages: list) -> Dict[str, Optional[float]]:
 
     logger.info(f"Individual extraction result: {result}")
     return result
+
+
+def parse_document_to_clauses(pdf_bytes: bytes) -> List[Clause]:
+    """Parse a policy document into a list of Clause objects."""
+
+    try:
+        with pdfplumber.open(BytesIO(pdf_bytes)) as pdf:
+            raw_blocks: List[RawClauseBlock] = []
+            section_stack: List[str] = ["Document"]
+
+            for page_index, page in enumerate(pdf.pages, start=1):
+                page_text = page.extract_text() or ""
+                for block_text in _split_page_into_blocks(page_text):
+                    lines = [line.strip() for line in block_text.split("\n") if line.strip()]
+                    if not lines:
+                        continue
+
+                    heading_candidate = lines[0]
+                    is_heading = _is_heading(heading_candidate)
+                    if is_heading and len(lines) == 1:
+                        section_stack = _update_section_stack(section_stack, heading_candidate)
+                        continue
+
+                    title = heading_candidate if is_heading else None
+                    if is_heading:
+                        section_stack = _update_section_stack(section_stack, heading_candidate)
+                        content_lines = lines[1:] or []
+                    else:
+                        content_lines = lines
+
+                    content = " ".join(content_lines).strip()
+                    if not content:
+                        continue
+
+                    block = RawClauseBlock(
+                        text=content,
+                        section_path=">".join(section_stack) or "Document",
+                        title=title,
+                        page_start=page_index,
+                        page_end=page_index,
+                        confidence=_estimate_confidence(content),
+                    )
+                    raw_blocks.append(block)
+
+            if len(raw_blocks) > MAX_CLAUSES:
+                raise ValueError(
+                    f"document contains {len(raw_blocks)} clauses which exceeds limit of {MAX_CLAUSES}"
+                )
+
+            clauses = normalise_blocks(raw_blocks)
+            return clauses
+    except pdfplumber.pdf.PDFSyntaxError as exc:  # pragma: no cover - library specific
+        logger.error("Failed to parse PDF syntax", error=str(exc))
+        raise
+
+    return []

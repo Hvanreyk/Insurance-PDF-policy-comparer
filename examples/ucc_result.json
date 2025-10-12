@@ -1,0 +1,164 @@
+{
+  "summary": {
+    "counts": {
+      "added": 1,
+      "removed": 1,
+      "modified": 3,
+      "unchanged": 0
+    },
+    "bullets": [
+      "Removed clause 27eb8578-9535-4056-a5ea-95ba7b1b58d6 on page 1; materiality 1.00",
+      "Added clause bff8a063-9d14-4133-bdb3-ee51acd3f28f on page 1; materiality 1.00",
+      "Modified clause 8a32d633-ca0f-496a-be6d-7393f262d76d on page 1; materiality 0.85",
+      "Modified clause 7de3703c-1b6e-4c31-9d1c-0c0ac8914536 on page 1; materiality 0.80",
+      "Modified clause 86440e98-5128-44b5-8300-a4bb3275d5c3 on page 1; materiality 0.30 (softened wording)"
+    ]
+  },
+  "matches": [
+    {
+      "a_id": "5e0eae36-4944-4ea0-866c-2cd8d1b4df99",
+      "b_id": "7de3703c-1b6e-4c31-9d1c-0c0ac8914536",
+      "similarity": 0.9206666666666666,
+      "status": "modified",
+      "token_diff": {
+        "added": [
+          "property",
+          "and",
+          "equipment."
+        ],
+        "removed": [
+          "property."
+        ]
+      },
+      "numeric_delta": null,
+      "materiality_score": 0.8,
+      "strictness_delta": 0,
+      "review_required": true,
+      "evidence": {
+        "a": {
+          "page_start": 1,
+          "page_end": 1
+        },
+        "b": {
+          "page_start": 1,
+          "page_end": 1
+        }
+      }
+    },
+    {
+      "a_id": "075149e0-33e1-4a35-aa48-76818617f1f3",
+      "b_id": "86440e98-5128-44b5-8300-a4bb3275d5c3",
+      "similarity": 0.793939393939394,
+      "status": "modified",
+      "token_diff": {
+        "added": [
+          "may",
+          "during",
+          "operating",
+          "hours."
+        ],
+        "removed": [
+          "shall",
+          "at",
+          "all",
+          "times."
+        ]
+      },
+      "numeric_delta": null,
+      "materiality_score": 0.3,
+      "strictness_delta": -1,
+      "review_required": true,
+      "evidence": {
+        "a": {
+          "page_start": 1,
+          "page_end": 1
+        },
+        "b": {
+          "page_start": 1,
+          "page_end": 1
+        }
+      }
+    },
+    {
+      "a_id": "ed6cebbf-3ab5-499a-aa97-972d0f57dd14",
+      "b_id": "8a32d633-ca0f-496a-be6d-7393f262d76d",
+      "similarity": 0.9445652173913044,
+      "status": "modified",
+      "token_diff": {
+        "added": [
+          "$2,500,000",
+          "$75,000"
+        ],
+        "removed": [
+          "$5,000,000",
+          "$50,000"
+        ]
+      },
+      "numeric_delta": null,
+      "materiality_score": 0.85,
+      "strictness_delta": 0,
+      "review_required": true,
+      "evidence": {
+        "a": {
+          "page_start": 1,
+          "page_end": 1
+        },
+        "b": {
+          "page_start": 1,
+          "page_end": 1
+        }
+      }
+    },
+    {
+      "a_id": "27eb8578-9535-4056-a5ea-95ba7b1b58d6",
+      "b_id": null,
+      "similarity": null,
+      "status": "removed",
+      "token_diff": null,
+      "numeric_delta": null,
+      "materiality_score": 1.0,
+      "strictness_delta": 0,
+      "review_required": true,
+      "evidence": {
+        "a": {
+          "page_start": 1,
+          "page_end": 1
+        }
+      }
+    },
+    {
+      "a_id": null,
+      "b_id": "bff8a063-9d14-4133-bdb3-ee51acd3f28f",
+      "similarity": null,
+      "status": "added",
+      "token_diff": null,
+      "numeric_delta": null,
+      "materiality_score": 1.0,
+      "strictness_delta": 0,
+      "review_required": false,
+      "evidence": {
+        "b": {
+          "page_start": 1,
+          "page_end": 1
+        }
+      }
+    }
+  ],
+  "unmapped_a": [
+    "27eb8578-9535-4056-a5ea-95ba7b1b58d6"
+  ],
+  "unmapped_b": [
+    "bff8a063-9d14-4133-bdb3-ee51acd3f28f"
+  ],
+  "warnings": [
+    "parse_a: 4 clause(s) below confidence threshold",
+    "parse_b: 2 clause(s) below confidence threshold"
+  ],
+  "timings_ms": {
+    "parse_a": 9.936078999999154,
+    "parse_b": 12.202242999933333,
+    "align": 0.46007100002043444,
+    "diff": 0.4802180000069711,
+    "total": 86.27131000002919
+  }
+}

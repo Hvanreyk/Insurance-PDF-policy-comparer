@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 from pdf_parser import parse_policy_pdf
 from comparison import compare_policies
+from routes.ucc import router as ucc_router
 
 load_dotenv()
 
@@ -17,6 +18,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(ucc_router)
 
 @app.get("/")
 async def root():
