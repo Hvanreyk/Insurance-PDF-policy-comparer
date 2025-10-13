@@ -1,4 +1,57 @@
-import { ClauseMatch, FilterState } from '../types/clauseComparison';
+import { ClauseMatch, ClauseType, FilterState } from '../types/clauseComparison';
+
+const UI_CLAUSE_TYPES: ClauseType[] = [
+  'All Types',
+  'Coverage',
+  'Exclusion',
+  'Condition',
+  'Definition',
+  'Warranty',
+  'Extension',
+  'Endorsement',
+  'Subjectivity',
+  'Deductible',
+];
+
+const CLAUSE_TYPE_LOOKUP: Record<string, ClauseType> = {
+  coverage: 'Coverage',
+  grant: 'Coverage',
+  insuring_agreement: 'Coverage',
+  'insuring agreement': 'Coverage',
+  exclusion: 'Exclusion',
+  exclusions: 'Exclusion',
+  condition: 'Condition',
+  conditions: 'Condition',
+  definition: 'Definition',
+  definitions: 'Definition',
+  warranty: 'Warranty',
+  warranties: 'Warranty',
+  extension: 'Extension',
+  extensions: 'Extension',
+  endorsement: 'Endorsement',
+  endorsements: 'Endorsement',
+  subjectivity: 'Subjectivity',
+  subjectivities: 'Subjectivity',
+  deductible: 'Deductible',
+  deductibles: 'Deductible',
+  limit: 'Deductible',
+};
+
+const uiClauseTypeSet = new Set<ClauseType>(UI_CLAUSE_TYPES);
+
+const normalizeClauseType = (value?: string | null): ClauseType => {
+  if (!value) {
+    return 'All Types';
+  }
+
+  const trimmedValue = value.trim();
+  if (uiClauseTypeSet.has(trimmedValue as ClauseType)) {
+    return trimmedValue as ClauseType;
+  }
+
+  const normalizedKey = trimmedValue.toLowerCase().replace(/[\s-]+/g, '_');
+  return CLAUSE_TYPE_LOOKUP[normalizedKey] ?? CLAUSE_TYPE_LOOKUP[trimmedValue.toLowerCase()] ?? 'All Types';
+};
 
 export const filterClauseMatches = (
   matches: ClauseMatch[],
@@ -10,7 +63,8 @@ export const filterClauseMatches = (
     }
 
     if (filters.clauseType !== 'All Types') {
-      if (!match.clause_type || match.clause_type !== filters.clauseType) {
+      const matchClauseType = normalizeClauseType(match.clause_type ?? null);
+      if (matchClauseType !== filters.clauseType) {
         return false;
       }
     }

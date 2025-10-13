@@ -288,40 +288,41 @@ export default function ClauseDetailView({ match, onClose }: ClauseDetailViewPro
             </div>
           )}
 
-          {match.numeric_delta && (
+          {match.numeric_delta && Object.keys(match.numeric_delta).length > 0 && (
             <div>
               <h4 className="text-sm font-semibold text-slate-800 mb-3">Numeric Changes</h4>
-              <div className="bg-slate-50 rounded-lg p-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <p className="text-slate-600 mb-1">Field</p>
-                    <p className="font-medium text-slate-800">{match.numeric_delta.field}</p>
+              <div className="bg-slate-50 rounded-lg p-4 space-y-4">
+                {Object.entries(match.numeric_delta).map(([field, delta]) => (
+                  <div
+                    key={field}
+                    className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm border border-slate-200 rounded-lg p-4 bg-white"
+                  >
+                    <div>
+                      <p className="text-slate-600 mb-1">Field</p>
+                      <p className="font-medium text-slate-800">{field}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-600 mb-1">Policy A</p>
+                      <p className="font-medium text-slate-800">
+                        {delta.a !== null ? delta.a.toLocaleString() : 'N/A'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-slate-600 mb-1">Policy B</p>
+                      <p className="font-medium text-slate-800">
+                        {delta.b !== null ? delta.b.toLocaleString() : 'N/A'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-slate-600 mb-1">Change</p>
+                      <p className="font-medium text-slate-800">
+                        {delta.pct !== null
+                          ? `${delta.pct > 0 ? '+' : ''}${(delta.pct * 100).toFixed(1)}%`
+                          : 'N/A'}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-slate-600 mb-1">Policy A</p>
-                    <p className="font-medium text-slate-800">
-                      {match.numeric_delta.a_value !== null
-                        ? match.numeric_delta.a_value.toLocaleString()
-                        : 'N/A'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-slate-600 mb-1">Policy B</p>
-                    <p className="font-medium text-slate-800">
-                      {match.numeric_delta.b_value !== null
-                        ? match.numeric_delta.b_value.toLocaleString()
-                        : 'N/A'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-slate-600 mb-1">Change</p>
-                    <p className="font-medium text-slate-800">
-                      {match.numeric_delta.delta_pct !== null
-                        ? `${match.numeric_delta.delta_pct > 0 ? '+' : ''}${match.numeric_delta.delta_pct.toFixed(1)}%`
-                        : 'N/A'}
-                    </p>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           )}
