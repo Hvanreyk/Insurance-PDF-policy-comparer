@@ -28,13 +28,13 @@ export interface Evidence {
   };
 }
 
-export interface NumericDelta {
-  field: string;
-  a_value: number | null;
-  b_value: number | null;
-  delta: number | null;
-  delta_pct: number | null;
+export interface NumericFieldDelta {
+  a: number | null;
+  b: number | null;
+  pct: number | null;
 }
+
+export type NumericDelta = Record<string, NumericFieldDelta>;
 
 export interface ClauseMatch {
   a_id: string | null;
