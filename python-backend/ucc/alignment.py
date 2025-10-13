@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import gc
 from dataclasses import dataclass
 import math
 from difflib import SequenceMatcher
@@ -34,6 +35,7 @@ except Exception:  # pragma: no cover - optional dependency
 
 DEFAULT_THRESHOLD = 0.72
 DEFAULT_MAX_CANDIDATES = 2
+BATCH_SIZE = 50
 
 
 def _clause_to_text(clause: Clause) -> str:
@@ -75,7 +77,13 @@ class ClauseEmbedder:
 
     def _ensure_vectorizer(self) -> None:
         if self._vectorizer is None:
-            self._vectorizer = TfidfVectorizer(stop_words="english")
+            self._vectorizer = TfidfVectorizer(
+                stop_words="english",
+                max_features=5000,
+                max_df=0.95,
+                min_df=1,
+                dtype='float32'
+            )
 
     def _ensure_openai(self) -> None:
         if OpenAI is None:
@@ -97,7 +105,10 @@ class ClauseEmbedder:
             assert self._st_model is not None
             vectors_a = self._st_model.encode(texts_a, convert_to_numpy=True)
             vectors_b = self._st_model.encode(texts_b, convert_to_numpy=True)
-            return self._cosine_similarity(vectors_a, vectors_b)
+            result = self._cosine_similarity(vectors_a, vectors_b)
+            del vectors_a, vectors_b
+            gc.collect()
+            return result
 
         if self.backend == "openai":
             self._ensure_openai()
@@ -105,7 +116,10 @@ class ClauseEmbedder:
             model_name = os.environ.get("UCC_OPENAI_MODEL", "text-embedding-3-small")
             vectors_a = self._batch_openai_embed(texts_a, model_name)
             vectors_b = self._batch_openai_embed(texts_b, model_name)
-            return self._cosine_similarity(vectors_a, vectors_b)
+            result = self._cosine_similarity(vectors_a, vectors_b)
+            del vectors_a, vectors_b
+            gc.collect()
+            return result
 
         if TfidfVectorizer is not None and cosine_similarity is not None and np is not None:
             self._ensure_vectorizer()
@@ -115,7 +129,10 @@ class ClauseEmbedder:
             vectors_a = matrix[: len(texts_a)]
             vectors_b = matrix[len(texts_a) :]
             similarities = cosine_similarity(vectors_a, vectors_b)
-            return similarities.tolist()
+            result = similarities.tolist()
+            del matrix, vectors_a, vectors_b, similarities, combined
+            gc.collect()
+            return result
 
         # Final fallback using SequenceMatcher
         similarities: List[List[float]] = []
@@ -190,17 +207,41 @@ def align_clauses(
         if not group_b:
             continue
 
-        similarity_matrix = embedder.similarity_matrix(group_a, group_b)
+        if len(group_a) > BATCH_SIZE or len(group_b) > BATCH_SIZE:
+            for batch_start in range(0, len(group_a), BATCH_SIZE):
+                batch_end = min(batch_start + BATCH_SIZE, len(group_a))
+                batch_a = group_a[batch_start:batch_end]
 
-        for i, clause_a in enumerate(group_a):
-            scores: List[Tuple[str, float]] = []
-            for j, clause_b in enumerate(group_b):
-                section_score = _section_similarity(clause_a.section_path, clause_b.section_path)
-                combined_score = 0.85 * similarity_matrix[i][j] + 0.15 * section_score
-                if combined_score >= options.similarity_threshold:
-                    scores.append((clause_b.id, float(combined_score)))
-            scores.sort(key=lambda item: item[1], reverse=True)
-            if scores:
-                alignment[clause_a.id] = scores[: options.max_candidates_per_clause]
+                similarity_matrix = embedder.similarity_matrix(batch_a, group_b)
+
+                for i, clause_a in enumerate(batch_a):
+                    scores: List[Tuple[str, float]] = []
+                    for j, clause_b in enumerate(group_b):
+                        section_score = _section_similarity(clause_a.section_path, clause_b.section_path)
+                        combined_score = 0.85 * similarity_matrix[i][j] + 0.15 * section_score
+                        if combined_score >= options.similarity_threshold:
+                            scores.append((clause_b.id, float(combined_score)))
+                    scores.sort(key=lambda item: item[1], reverse=True)
+                    if scores:
+                        alignment[clause_a.id] = scores[: options.max_candidates_per_clause]
+
+                del similarity_matrix
+                gc.collect()
+        else:
+            similarity_matrix = embedder.similarity_matrix(group_a, group_b)
+
+            for i, clause_a in enumerate(group_a):
+                scores: List[Tuple[str, float]] = []
+                for j, clause_b in enumerate(group_b):
+                    section_score = _section_similarity(clause_a.section_path, clause_b.section_path)
+                    combined_score = 0.85 * similarity_matrix[i][j] + 0.15 * section_score
+                    if combined_score >= options.similarity_threshold:
+                        scores.append((clause_b.id, float(combined_score)))
+                scores.sort(key=lambda item: item[1], reverse=True)
+                if scores:
+                    alignment[clause_a.id] = scores[: options.max_candidates_per_clause]
+
+            del similarity_matrix
+            gc.collect()
 
     return alignment

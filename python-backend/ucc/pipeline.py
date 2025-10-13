@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gc
 import time
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence
@@ -63,6 +64,7 @@ class UCCComparer:
             ),
         )
         timings["align"] = (time.perf_counter() - align_start) * 1000
+        gc.collect()
 
         lookup_a = ClauseLookup(clauses_a)
         lookup_b = ClauseLookup(clauses_b)
@@ -208,6 +210,9 @@ class UCCComparer:
         timings["total"] = (time.perf_counter() - start) * 1000
 
         summary = self._build_summary(matches)
+
+        del alignment, lookup_a, lookup_b, clauses_a, clauses_b
+        gc.collect()
 
         return UCCComparisonResult(
             summary=summary,

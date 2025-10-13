@@ -1,7 +1,8 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 import os
+import gc
 from dotenv import load_dotenv
 from pdf_parser import parse_policy_pdf
 from comparison import compare_policies
@@ -13,16 +14,11 @@ app = FastAPI(title="Insurance Policy Parser API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "https://*.railway.app",
-        "https://*.up.railway.app",
-    ],
-    allow_origin_regex=r"https://.*\.railway\.app",
+    allow_origins=["*"],
     allow_credentials=False,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 app.include_router(ucc_router)
@@ -30,6 +26,18 @@ app.include_router(ucc_router)
 @app.get("/")
 async def root():
     return {"message": "Insurance Policy Parser API", "status": "running"}
+
+@app.head("/")
+async def root_head():
+    return Response(status_code=200)
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy", "service": "insurance-policy-parser"}
+
+@app.head("/health")
+async def health_head():
+    return Response(status_code=200)
 
 @app.post("/api/parse-policy")
 async def parse_policy(file: UploadFile = File(...)):
@@ -44,9 +52,13 @@ async def parse_policy(file: UploadFile = File(...)):
 
         policy_data = parse_policy_pdf(contents)
 
+        del contents
+        gc.collect()
+
         return JSONResponse(content=policy_data)
 
     except Exception as e:
+        gc.collect()
         raise HTTPException(status_code=500, detail=f"Error parsing PDF: {str(e)}")
 
 @app.post("/api/compare-policies")
@@ -66,6 +78,9 @@ async def compare_policies_endpoint(
 
         comparison = compare_policies(policy_data_a, policy_data_b)
 
+        del contents_a, contents_b
+        gc.collect()
+
         return JSONResponse(content={
             "policy_a": policy_data_a,
             "policy_b": policy_data_b,
@@ -73,6 +88,7 @@ async def compare_policies_endpoint(
         })
 
     except Exception as e:
+        gc.collect()
         raise HTTPException(status_code=500, detail=f"Error comparing policies: {str(e)}")
 
 if __name__ == "__main__":

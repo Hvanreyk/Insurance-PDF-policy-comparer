@@ -16,7 +16,7 @@ except Exception:  # pragma: no cover - fallback to stdlib logging
 from ucc.models_ucc import Clause
 from ucc.normalization import RawClauseBlock, normalise_blocks
 
-MAX_CLAUSES = 3000
+MAX_CLAUSES = 1500
 
 
 def _split_page_into_blocks(text: str) -> List[str]:
