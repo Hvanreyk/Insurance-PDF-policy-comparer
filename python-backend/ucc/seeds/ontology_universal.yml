@@ -1,16 +1,604 @@
-Flood:
-  synonyms: ["flood", "inundation", "overflow of watercourse", "storm surge"]
-  include_terms: ["water", "river", "lake", "sea", "ocean", "tidal"]
-  exclude_terms: ["burst pipe", "seepage"]
-Cyber:
-  synonyms: ["cyber", "computer", "data breach", "malware", "unauthorized access"]
-  include_terms: ["network", "system", "data", "ransomware"]
-  exclude_terms: ["mechanical breakdown"]
-WarTerror:
-  synonyms: ["war", "warlike", "terrorism", "hostile act"]
-  include_terms: ["insurrection", "revolution", "military force"]
+# ontology_professional.yml
+# Universal ontology for Professional Indemnity (PI) / Professional Services policies.
+# Each concept lists synonyms (strong signals), include_terms (supporting tokens),
+# and exclude_terms (to reduce false hits). Add/adjust freely.
+
+# --------------------------
+# COVER / INSURING AGREEMENT
+# --------------------------
+CivilLiability:
+  synonyms:
+    - "civil liability"
+    - "civil liability cover"
+    - "liability for any civil claim"
+    - "breach of professional duty"
+    - "error or omission"
+    - "negligent act error or omission"
+  include_terms:
+    - "professional services"
+    - "claim"
+    - "compensation"
+    - "damages"
+    - "defence costs"
+  exclude_terms:
+    - "public liability"
+    - "products liability"
+    - "employers liability"
+
+ProfessionalServices:
+  synonyms:
+    - "professional services"
+    - "professional duties"
+    - "professional advice"
+    - "professional activities"
+    - "professional practice"
+  include_terms:
+    - "client"
+    - "fee for service"
+    - "duty of care"
+  exclude_terms:
+    - "manual work"
+    - "trading of goods"
+    - "manufacture"
+
+CostsAndExpenses:
+  synonyms:
+    - "defence costs"
+    - "defense costs"  # US spelling
+    - "costs and expenses"
+    - "legal costs"
+    - "investigation costs"
+    - "settlement costs"
+  include_terms:
+    - "incurred with consent"
+    - "in addition to limit"
+    - "costs inclusive"
+  exclude_terms:
+    - "taxes"
+    - "fines"
+    - "penalties"
+
+LossMitigation:
+  synonyms:
+    - "mitigation costs"
+    - "loss mitigation"
+    - "crisis mitigation"
+    - "avoidance costs"
+  include_terms:
+    - "reasonable and necessary"
+    - "to reduce loss"
+    - "to prevent a claim"
+  exclude_terms:
+    - "profit"
+    - "betterment"
+
+InquiryCosts:
+  synonyms:
+    - "inquiry costs"
+    - "investigation costs"
+    - "regulatory inquiry"
+    - "disciplinary proceeding"
+  include_terms:
+    - "subpoena"
+    - "inquest"
+    - "commission"
+  exclude_terms:
+    - "criminal fine"
+    - "penalty"
+
+Defamation:
+  synonyms:
+    - "defamation"
+    - "libel"
+    - "slander"
+    - "injurious falsehood"
+  include_terms:
+    - "publication"
+    - "reputation"
+  exclude_terms:
+    - "advertising injury"  # GL context
+
+IntellectualProperty:
+  synonyms:
+    - "intellectual property"
+    - "IP infringement"
+    - "copyright"
+    - "trademark"
+    - "passing off"
+    - "moral rights"
+  include_terms:
+    - "infringe"
+    - "unauthorised use"
+  exclude_terms:
+    - "patent"  # often excluded or separately limited; keep careful
+
+LossOfDocuments:
+  synonyms:
+    - "loss of documents"
+    - "document restoration"
+    - "lost or damaged documents"
+    - "electronic data restoration"
+  include_terms:
+    - "costs of reproduction"
+    - "records"
+  exclude_terms:
+    - "intangible property not data"
+    - "trade stock"
+
+RunOffCover:
+  synonyms:
+    - "run-off"
+    - "run off"
+    - "cessation of practice cover"
+    - "retirement cover"
+  include_terms:
+    - "after cessation"
+    - "past services"
   exclude_terms: []
+
+VicariousLiability:
+  synonyms:
+    - "vicarious liability"
+    - "liability for consultants or agents"
+    - "joint venture liability"
+  include_terms:
+    - "contractor"
+    - "agent"
+    - "outsourced"
+  exclude_terms:
+    - "employment practices"
+
+ContinuousCover:
+  synonyms:
+    - "continuous cover"
+    - "continuous coverage"
+    - "continuity of cover"
+  include_terms:
+    - "prior known circumstances"
+    - "no earlier notification"
+  exclude_terms:
+    - "fraudulent non-disclosure"
+
+# -----------
+# EXCLUSIONS
+# -----------
+Asbestos:
+  synonyms:
+    - "asbestos"
+    - "asbestos fibres"
+    - "asbestosis"
+  include_terms:
+    - "exposure"
+    - "abatement"
+  exclude_terms: []
+
 Pollution:
-  synonyms: ["pollution", "contamination", "seepage", "smoke", "soot", "fumes"]
-  include_terms: ["discharge", "release", "escape"]
-  exclude_terms: ["sudden and accidental carveback"]
+  synonyms:
+    - "pollution"
+    - "contamination"
+    - "seepage"
+    - "emission"
+    - "discharge"
+    - "release"
+  include_terms:
+    - "escape"
+    - "environmental impairment"
+    - "gradual"
+    - "sudden and accidental"  # carveback indicator
+  exclude_terms: []
+
+CyberLiability:
+  synonyms:
+    - "cyber"
+    - "data breach"
+    - "privacy breach"
+    - "malware"
+    - "ransomware"
+    - "unauthorised access"
+    - "network security"
+  include_terms:
+    - "personal information"
+    - "confidential data"
+  exclude_terms:
+    - "mechanical breakdown"
+
+ContractualLiability:
+  synonyms:
+    - "contractual liability"
+    - "assumed liability"
+    - "liability assumed under contract"
+  include_terms:
+    - "hold harmless"
+    - "indemnity agreement"
+  exclude_terms:
+    - "liability that would attach in absence of contract"
+
+WarTerror:
+  synonyms:
+    - "war"
+    - "warlike"
+    - "civil war"
+    - "terrorism"
+    - "hostile act"
+    - "insurrection"
+  include_terms:
+    - "terrorist act"
+    - "military force"
+  exclude_terms: []
+
+Nuclear:
+  synonyms:
+    - "nuclear"
+    - "ionising radiation"
+    - "radioactive contamination"
+  include_terms:
+    - "radioactivity"
+    - "radiation"
+  exclude_terms: []
+
+PunitiveFinesPenalties:
+  synonyms:
+    - "fines and penalties"
+    - "punitive damages"
+    - "exemplary damages"
+    - "multiples"
+  include_terms:
+    - "uninsurable"
+  exclude_terms:
+    - "compensatory damages"
+
+BodilyInjuryPropertyDamage:
+  synonyms:
+    - "bodily injury"
+    - "personal injury"
+    - "property damage"
+    - "BI PD"
+  include_terms:
+    - "death"
+    - "sickness"
+    - "tangible property"
+  exclude_terms:
+    - "pure financial loss"
+
+EmploymentPractices:
+  synonyms:
+    - "employment practices liability"
+    - "EPL"
+    - "unfair dismissal"
+    - "harassment"
+    - "discrimination"
+  include_terms:
+    - "employee"
+    - "workplace"
+  exclude_terms: []
+
+Insolvency:
+  synonyms:
+    - "insolvency"
+    - "bankruptcy"
+    - "administration"
+    - "liquidation"
+  include_terms:
+    - "insolvent trading"
+  exclude_terms: []
+
+PriorKnownCircumstances:
+  synonyms:
+    - "known claims"
+    - "known circumstances"
+    - "prior matters"
+    - "facts or circumstances"
+  include_terms:
+    - "before inception"
+    - "aware"
+  exclude_terms:
+    - "continuous cover"  # may reinstate
+
+RelatedEntity:
+  synonyms:
+    - "related entity"
+    - "associated company"
+    - "subsidiary claims"
+    - "insured vs insured"
+  include_terms:
+    - "cross claims"
+  exclude_terms:
+    - "innocent insured carve back"
+
+DandO:
+  synonyms:
+    - "directors and officers"
+    - "D&O"
+    - "management liability"
+  include_terms:
+    - "company director"
+    - "officer"
+  exclude_terms: []
+
+IntellectualPropertyExcl:
+  synonyms:
+    - "intellectual property"
+    - "patent"
+    - "trade secret"
+  include_terms:
+    - "unauthorised use"
+  exclude_terms:
+    - "copyright"
+    - "trademark"
+    - "defamation"  # if separately covered
+
+USACanadaJurisdiction:
+  synonyms:
+    - "USA"
+    - "United States"
+    - "Canada"
+    - "jurisdiction"
+    - "territory exclusion"
+  include_terms:
+    - "governing law"
+    - "venue"
+  exclude_terms: []
+
+Sanctions:
+  synonyms:
+    - "sanctions"
+    - "trade sanctions"
+    - "embargo"
+  include_terms:
+    - "prohibited"
+  exclude_terms: []
+
+# -----------
+# CONDITIONS
+# -----------
+ClaimsMadeTrigger:
+  synonyms:
+    - "claims-made"
+    - "claims made"
+    - "made and notified"
+  include_terms:
+    - "during the period of insurance"
+    - "first made"
+  exclude_terms:
+    - "occurrence"  # for clarity
+
+RetroactiveDate:
+  synonyms:
+    - "retroactive date"
+    - "retro date"
+    - "prior acts date"
+  include_terms:
+    - "no cover prior to"
+    - "unlimited retroactive"
+  exclude_terms: []
+
+Notification:
+  synonyms:
+    - "notice of claim"
+    - "notification"
+    - "reporting"
+    - "circumstances"
+  include_terms:
+    - "as soon as practicable"
+    - "written notice"
+  exclude_terms: []
+
+Cooperation:
+  synonyms:
+    - "cooperation"
+    - "assist and cooperate"
+    - "duty to assist"
+  include_terms:
+    - "provide information"
+    - "attend"
+  exclude_terms: []
+
+Subrogation:
+  synonyms:
+    - "subrogation"
+    - "subrogate"
+    - "recover from third parties"
+  include_terms:
+    - "cooperate in recovery"
+  exclude_terms: []
+
+WaiverOfSubrogation:
+  synonyms:
+    - "waiver of subrogation"
+    - "waive subrogation"
+  include_terms:
+    - "contract requirement"
+  exclude_terms: []
+
+Severability:
+  synonyms:
+    - "severability"
+    - "severable"
+  include_terms:
+    - "misrepresentation by one insured"
+  exclude_terms: []
+
+FraudulentClaims:
+  synonyms:
+    - "fraudulent claim"
+    - "fraud"
+    - "dishonesty"
+  include_terms:
+    - "void"
+    - "repay"
+  exclude_terms: []
+
+GoverningLawJurisdiction:
+  synonyms:
+    - "governing law"
+    - "jurisdiction"
+    - "venue"
+  include_terms:
+    - "state law"
+    - "exclusive jurisdiction"
+  exclude_terms: []
+
+TerritorialLimits:
+  synonyms:
+    - "territorial limits"
+    - "territory"
+    - "geographical limits"
+  include_terms:
+    - "Australia"
+    - "worldwide"
+  exclude_terms: []
+
+Cancellation:
+  synonyms:
+    - "cancel"
+    - "cancellation"
+    - "termination"
+  include_terms:
+    - "notice"
+    - "refund"
+  exclude_terms: []
+
+# -------------------
+# LIMITS & DEDUCTIBLES
+# -------------------
+LimitOfLiability:
+  synonyms:
+    - "limit of liability"
+    - "policy limit"
+    - "aggregate limit"
+    - "per claim limit"
+  include_terms:
+    - "aggregate"
+    - "any one claim"
+  exclude_terms: []
+
+Sublimit:
+  synonyms:
+    - "sublimit"
+    - "additional limit"
+    - "sub-limit"
+  include_terms:
+    - "for each extension"
+  exclude_terms: []
+
+ExcessDeductible:
+  synonyms:
+    - "excess"
+    - "deductible"
+    - "self insured retention"
+  include_terms:
+    - "each and every claim"
+    - "costs inclusive"
+  exclude_terms: []
+
+CostsInclusiveExclusive:
+  synonyms:
+    - "costs inclusive"
+    - "costs exclusive"
+    - "defence costs in addition"
+  include_terms:
+    - "erosion of limit"
+  exclude_terms: []
+
+# ------------
+# DEFINITIONS
+# ------------
+DefinitionClaim:
+  synonyms:
+    - "“claim” means"
+    - "claim means"
+    - "means claim"
+  include_terms:
+    - "written demand"
+    - "civil proceeding"
+  exclude_terms: []
+
+DefinitionLoss:
+  synonyms:
+    - "“loss” means"
+    - "loss means"
+  include_terms:
+    - "damages"
+    - "settlement"
+    - "costs"
+  exclude_terms:
+    - "fines"
+    - "penalties"
+
+DefinitionProfessionalServices:
+  synonyms:
+    - "“professional services” means"
+    - "professional services means"
+  include_terms:
+    - "advice"
+    - "design"
+    - "consulting"
+  exclude_terms:
+    - "manufacture"
+    - "sale of goods"
+
+DefinitionRetroactiveDate:
+  synonyms:
+    - "“retroactive date” means"
+    - "retroactive date means"
+  include_terms: []
+  exclude_terms: []
+
+DefinitionCircumstance:
+  synonyms:
+    - "“circumstance” means"
+    - "circumstances means"
+  include_terms:
+    - "facts or matters"
+    - "may give rise"
+  exclude_terms: []
+
+DefinitionInsured:
+  synonyms:
+    - "“insured” means"
+    - "insured means"
+  include_terms:
+    - "entity"
+    - "principal"
+    - "employee"
+    - "subsidiary"
+  exclude_terms: []
+
+DefinitionPeriodOfInsurance:
+  synonyms:
+    - "“period of insurance” means"
+    - "period of insurance means"
+  include_terms:
+    - "from"
+    - "to"
+  exclude_terms: []
+
+# ----------------
+# ENDORSEMENTS ETC
+# ----------------
+FraudDishonestyInnocentInsured:
+  synonyms:
+    - "fraud and dishonesty"
+    - "innocent insured"
+    - "innocent party carve-back"
+  include_terms:
+    - "exclusion shall not apply to"
+    - "innocent insureds"
+  exclude_terms: []
+
+ReinstatementOfLimit:
+  synonyms:
+    - "reinstatement of limit"
+    - "automatic reinstatement"
+  include_terms:
+    - "once exhausted"
+  exclude_terms: []
+
+SpousalExtension:
+  synonyms:
+    - "spousal extension"
+    - "legal representatives"
+  include_terms:
+    - "estate"
+    - "heirs"
+  exclude_terms: []
