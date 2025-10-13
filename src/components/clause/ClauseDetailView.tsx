@@ -150,6 +150,101 @@ export default function ClauseDetailView({ match, onClose }: ClauseDetailViewPro
             </div>
           )}
 
+          {(match.a_text || match.b_text) && (
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold text-slate-800">Clause Text Comparison</h4>
+              <div className="grid md:grid-cols-2 gap-4">
+                {match.a_text && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h5 className="text-sm font-semibold text-red-900">
+                        Policy A - Expiring Policy
+                      </h5>
+                      <button
+                        onClick={() => copyToClipboard(match.a_text!, true)}
+                        className="text-red-600 hover:text-red-700 transition-colors"
+                        title="Copy clause text"
+                      >
+                        {copiedA ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                    {match.a_title && (
+                      <p className="text-xs font-semibold text-red-800 mb-2 pb-2 border-b border-red-300">
+                        {match.a_title}
+                      </p>
+                    )}
+                    <div className="max-h-80 overflow-y-auto">
+                      <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">
+                        {match.a_text}
+                      </p>
+                    </div>
+                    {match.a_text.endsWith('...') && (
+                      <p className="text-xs text-red-600 mt-2 italic">
+                        Text truncated for display
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {match.b_text && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h5 className="text-sm font-semibold text-green-900">
+                        Policy B - New Quote
+                      </h5>
+                      <button
+                        onClick={() => copyToClipboard(match.b_text!, false)}
+                        className="text-green-600 hover:text-green-700 transition-colors"
+                        title="Copy clause text"
+                      >
+                        {copiedB ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                    {match.b_title && (
+                      <p className="text-xs font-semibold text-green-800 mb-2 pb-2 border-b border-green-300">
+                        {match.b_title}
+                      </p>
+                    )}
+                    <div className="max-h-80 overflow-y-auto">
+                      <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">
+                        {match.b_text}
+                      </p>
+                    </div>
+                    {match.b_text.endsWith('...') && (
+                      <p className="text-xs text-green-600 mt-2 italic">
+                        Text truncated for display
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {!match.a_text && match.b_text && (
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex items-center justify-center">
+                    <p className="text-sm text-slate-500 italic">
+                      Clause not present in Policy A
+                    </p>
+                  </div>
+                )}
+
+                {match.a_text && !match.b_text && (
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex items-center justify-center">
+                    <p className="text-sm text-slate-500 italic">
+                      Clause not present in Policy B
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {match.token_diff && (
             <div className="space-y-4">
               <h4 className="text-sm font-semibold text-slate-800">Token Differences</h4>

@@ -39,6 +39,20 @@ class ClauseLookup:
         return self.by_id.get(clause_id)
 
 
+def _truncate_text(text: str, max_length: int = 800) -> str:
+    """Truncate text to a maximum length, breaking at word boundaries."""
+    if len(text) <= max_length:
+        return text
+
+    truncated = text[:max_length]
+    last_space = truncated.rfind(' ')
+
+    if last_space > max_length * 0.8:
+        truncated = truncated[:last_space]
+
+    return truncated + "..."
+
+
 class UCCComparer:
     """Coordinates the Universal Clause Comparer pipeline."""
 
@@ -209,6 +223,8 @@ class UCCComparer:
         timings["diff"] = (time.perf_counter() - diff_start) * 1000
         timings["total"] = (time.perf_counter() - start) * 1000
 
+        self._attach_clause_texts(matches, lookup_a, lookup_b)
+
         summary = self._build_summary(matches)
 
         del alignment, lookup_a, lookup_b, clauses_a, clauses_b
@@ -241,6 +257,23 @@ class UCCComparer:
                 f"{label}: {len(low_confidence)} clause(s) below confidence threshold"
             )
         return clauses
+
+    def _attach_clause_texts(
+        self, matches: List[ClauseMatch], lookup_a: ClauseLookup, lookup_b: ClauseLookup
+    ) -> None:
+        """Attach truncated clause text snippets to matches for UI display."""
+        for match in matches:
+            if match.a_id:
+                clause_a = lookup_a.get(match.a_id)
+                if clause_a:
+                    match.a_text = _truncate_text(clause_a.text)
+                    match.a_title = clause_a.title
+
+            if match.b_id:
+                clause_b = lookup_b.get(match.b_id)
+                if clause_b:
+                    match.b_text = _truncate_text(clause_b.text)
+                    match.b_title = clause_b.title
 
     def _build_summary(self, matches: Sequence[ClauseMatch]) -> Dict[str, object]:
         counts = {

@@ -46,6 +46,10 @@ class ClauseMatch(BaseModel):
     strictness_delta: int = 0
     review_required: bool = False
     evidence: Dict[str, Dict[str, Optional[int]]] = Field(default_factory=dict)
+    a_text: Optional[str] = None
+    b_text: Optional[str] = None
+    a_title: Optional[str] = None
+    b_title: Optional[str] = None
 
 
 class UCCComparisonResult(BaseModel):

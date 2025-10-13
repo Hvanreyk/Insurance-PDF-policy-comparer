@@ -48,6 +48,10 @@ export interface ClauseMatch {
   review_required: boolean;
   evidence: Evidence;
   clause_type?: ClauseType;
+  a_text?: string | null;
+  b_text?: string | null;
+  a_title?: string | null;
+  b_title?: string | null;
 }
 
 export interface Counts {
