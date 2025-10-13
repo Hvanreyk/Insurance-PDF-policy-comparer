@@ -1,7 +1,72 @@
-- "We will indemnify you for direct physical loss or damage to insured property during the period of insurance."
-- "We will not cover loss arising from war, invasion, acts of foreign enemy or terrorism."
-- "“Flood” means the covering of normally dry land by water released or escaping from a natural watercourse."
-- "It is a condition precedent to liability that you notify us as soon as practicable after any occurrence."
-- "The limit of liability for any one occurrence shall not exceed $[AMOUNT]."
-- "This policy does not cover cyber events including unauthorized access, malware or data breach."
-- "Territorial limits: Australia and New Zealand only."
+# prototypes_positive_professional.yml
+# Short exemplar lines for gating + alignment. Add freely as you encounter variants.
+
+# Insuring Clauses / Coverage
+- "We shall indemnify the Insured for any civil liability arising from Professional Services performed during the Period of Insurance."
+- "The Insurer agrees to pay Loss resulting from a Claim first made and notified during the Period of Insurance."
+- "Defence Costs are payable with our prior written consent."
+- "We will reimburse reasonable mitigation costs incurred to avoid or reduce a potential claim."
+- "Inquiry Costs are covered where the Insured is legally compelled to attend a regulatory or disciplinary proceeding."
+- "This policy provides cover for defamation, including libel and slander, arising from Professional Services."
+- "Loss of Documents: we will pay the costs of replacing or restoring lost or damaged documents in the Insured’s care."
+- "Vicarious Liability: we cover the Insured’s liability for acts of consultants, agents or contractors in connection with Professional Services."
+- "Continuous Cover: notwithstanding the Prior Known Circumstances exclusion, we will cover claims arising from facts that the Insured first became aware of after the retroactive date and before inception, provided uninterrupted cover is maintained."
+- "Run-off cover applies after cessation of practice for claims arising from past Professional Services."
+
+# Exclusions (phrasing variety)
+- "We will not cover any liability arising directly or indirectly from asbestos or asbestos-containing materials."
+- "This policy excludes fines, penalties or punitive or exemplary damages."
+- "There is no cover for liability assumed by the Insured under contract unless such liability would have attached in the absence of the contract."
+- "We exclude any claim arising from or attributable to pollution or contamination, unless caused by a sudden, identifiable, unintended and unexpected event."
+- "No cover for claims based upon or attributable to war, civil war, insurrection or terrorism."
+- "This policy excludes nuclear reaction, nuclear radiation or radioactive contamination."
+- "We will not be liable for any claim arising from bodily injury, sickness, disease or death, or damage to tangible property, except where such liability arises from Professional Services and is not otherwise excluded."
+- "There is no cover for claims arising from employment-related practices including wrongful dismissal, harassment or discrimination."
+- "We exclude claims arising out of the insolvency or bankruptcy of the Insured."
+- "We exclude claims brought within, or subject to the laws of, the United States of America or Canada, unless otherwise endorsed."
+- "Claims by or on behalf of any Insured or any related or associated entity are excluded."
+- "Cyber exclusion: no cover for loss arising from unauthorised access, data breach, malware or other cyber events."
+
+# Conditions
+- "This is a claims-made policy; cover applies to claims first made against the Insured during the Period of Insurance and notified to us as soon as practicable."
+- "It is a condition precedent that the Insured shall give written notice of any claim or circumstance as soon as practicable."
+- "The Insured must cooperate with and assist the Insurer in the investigation, defence or settlement of any claim."
+- "The Insurer is subrogated to all the rights of recovery of the Insured and the Insured shall do nothing to prejudice such rights."
+- "Severability: no statement or knowledge of any Insured shall be imputed to any other Insured."
+- "Fraudulent Claims: if any claim is in any respect fraudulent, the Insurer may void the policy and seek recovery of amounts paid."
+- "Governing Law and Jurisdiction: this policy shall be governed by the law of the State or Territory specified in the schedule, with exclusive jurisdiction of its courts."
+- "Cancellation by the Insured may be effected by providing written notice; we will refund the unused premium on a pro rata basis, subject to no claims."
+
+# Limits / Deductibles / Cost treatment
+- "The Limit of Liability for any one claim and in the aggregate for all claims shall not exceed the amount stated in the schedule."
+- "Defence Costs are in addition to the Limit of Liability unless otherwise stated."
+- "Sublimits apply as stated for Extensions and do not increase the Limit of Liability."
+- "An Excess applies to each and every claim, including costs and expenses, unless otherwise specified."
+- "Costs inclusive: defence costs are part of and not in addition to the Limit of Liability."
+
+# Definitions (short forms)
+- "“Claim” means any written demand, civil proceeding, arbitration or other alternative dispute resolution proceeding seeking compensation."
+- "“Loss” means damages, settlements and Defence Costs, but does not include fines, penalties, taxes or matters uninsurable at law."
+- "“Professional Services” means services specified in the schedule, including advice, design, specification, consulting and similar services for a fee."
+- "“Retroactive Date” means the date stated in the schedule before which acts or omissions are not covered by this policy."
+- "“Circumstance” means any fact or matter which a reasonable person in the Insured’s position would have anticipated may give rise to a Claim."
+- "“Insured” means the entity named in the schedule, its past and present principals, partners, directors, officers and employees while acting in the scope of their duties."
+
+# Endorsements / Extensions (examples)
+- "Fraud and Dishonesty Extension: the exclusion for fraud or dishonesty shall not apply to any innocent Insured, provided no indemnity shall be afforded to any guilty party."
+- "Inquiry Costs Extension: we will pay reasonable legal representation costs incurred in attending a regulatory or disciplinary inquiry."
+- "Loss of Documents Extension: sublimit of $250,000 any one claim and in the aggregate, excess nil."
+- "Reinstatement of Limit: the Limit of Liability shall be reinstated once following its exhaustion, subject to additional premium and terms."
+- "Spousal Extension: cover extends to the lawful spouse or domestic partner for claims solely due to their status as such."
+- "Joint Venture Extension: cover applies to the Insured’s liability arising from participation in a joint venture, limited to the Insured’s percentage interest."
+
+# Territory / Jurisdiction
+- "Territorial Limits: worldwide excluding USA and Canada unless otherwise endorsed."
+- "Jurisdiction: claims must be brought within the courts of Australia or New Zealand unless endorsed otherwise."
+
+# Facet-rich exemplars (to help broader/narrower)
+- "Pollution exclusion with carve-back: no cover for pollution, however cover applies where the event is sudden, identifiable, unintended and unexpected and discovered at a specific time and place."
+- "Bodily injury carve-back: exclusion does not apply to mental anguish or shock directly resulting from a breach of professional duty."
+- "Contractual liability carve-back: exclusion does not apply to liability which would have attached in the absence of such contract."
+- "Cyber carve-back: exclusion shall not apply to unintentional transmission of malicious code during the provision of Professional Services."
+- "USA/Canada jurisdiction exception: cover applies where the governing law is Australian and the proceeding is brought in Australia."
