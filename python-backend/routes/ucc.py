@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Optional
+from typing import Dict, List, Optional
 from uuid import uuid4
 
 try:  # pragma: no cover - optional dependency
@@ -17,11 +17,46 @@ except Exception:  # pragma: no cover - fallback to stdlib logging
     logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from pydantic import BaseModel, Field
 
 from ucc.models_ucc import UCCComparisonResult
 from ucc.pipeline import ComparisonOptions, UCCComparer
+from ucc.service import align_policy_blocks, diff_policy_facets, preprocess_policy
 
-router = APIRouter(prefix="/api", tags=["universal-clause-comparer"])
+router = APIRouter()
+legacy_router = APIRouter(prefix="/api", tags=["universal-clause-comparer"])
+modern_router = APIRouter(prefix="/ucc", tags=["universal-clause-comparer"])
+
+
+class BlockPayload(BaseModel):
+    id: str
+    text: str
+    clause_type: str = Field(default="UNKNOWN")
+    concepts: List[str] = Field(default_factory=list)
+    section_path: List[str] = Field(default_factory=list)
+    is_admin: bool = False
+    ors: float | None = None
+
+
+class AlignRequest(BaseModel):
+    blocks_a: List[BlockPayload]
+    blocks_b: List[BlockPayload]
+
+
+class AlignResponse(BaseModel):
+    alignments: List[Dict[str, object]]
+
+
+class DiffMatch(BaseModel):
+    clause_type: str
+    block_id_a: str
+    block_id_b: str
+
+
+class DiffRequest(BaseModel):
+    matches: List[DiffMatch]
+    blocks_a: List[BlockPayload]
+    blocks_b: List[BlockPayload]
 
 
 def _parse_options(options_raw: Optional[str]) -> ComparisonOptions:
@@ -44,7 +79,7 @@ def _parse_options(options_raw: Optional[str]) -> ComparisonOptions:
     return options
 
 
-@router.post("/compare-clauses", response_model=UCCComparisonResult)
+@legacy_router.post("/compare-clauses", response_model=UCCComparisonResult)
 async def compare_clauses(
     file_a: UploadFile = File(...),
     file_b: UploadFile = File(...),
@@ -86,3 +121,37 @@ async def compare_clauses(
             else:
                 log.error("comparison failed: %s", str(exc))
         raise HTTPException(status_code=500, detail={"message": "Internal error", "trace_id": trace_id})
+
+
+@modern_router.post("/preprocess")
+async def preprocess_endpoint(file: UploadFile = File(...)) -> Dict[str, List[Dict[str, object]]]:
+    contents = await file.read()
+    if not contents:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty")
+    blocks = preprocess_policy(contents)
+    return {"blocks": blocks}
+
+
+@modern_router.post("/align", response_model=AlignResponse)
+async def align_endpoint(request: AlignRequest) -> AlignResponse:
+    alignments = align_policy_blocks(
+        [block.dict() for block in request.blocks_a],
+        [block.dict() for block in request.blocks_b],
+    )
+    return AlignResponse(alignments=alignments)
+
+
+@modern_router.post("/diff")
+async def diff_endpoint(request: DiffRequest) -> Dict[str, List[Dict[str, object]]]:
+    lookup_a = {block.id: block.dict() for block in request.blocks_a}
+    lookup_b = {block.id: block.dict() for block in request.blocks_b}
+    diffs = diff_policy_facets(
+        [match.dict() for match in request.matches],
+        lookup_a,
+        lookup_b,
+    )
+    return {"diffs": diffs}
+
+
+router.include_router(legacy_router)
+router.include_router(modern_router)
