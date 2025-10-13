@@ -1,4 +1,3 @@
-# ontology_professional.yml
 # Universal ontology for Professional Indemnity (PI) / Professional Services policies.
 # Each concept lists synonyms (strong signals), include_terms (supporting tokens),
 # and exclude_terms (to reduce false hits). Add/adjust freely.
