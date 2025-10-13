@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import difflib
 import gc
 import time
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from typing import TYPE_CHECKING
 
@@ -77,6 +78,8 @@ class UCCComparer:
                 max_candidates_per_clause=self.options.max_candidates_per_clause,
             ),
         )
+        if not alignment:
+            alignment = self._fallback_alignment(clauses_a, clauses_b)
         timings["align"] = (time.perf_counter() - align_start) * 1000
         gc.collect()
 
@@ -103,6 +106,20 @@ class UCCComparer:
                 strictness_delta = evaluate_strictness(
                     raw_token_diff.get("removed", []), raw_token_diff.get("added", [])
                 )
+                if (
+                    strictness_delta == 0
+                    and (raw_token_diff.get("removed") or raw_token_diff.get("added"))
+                ):
+                    removed_tokens = raw_token_diff.get("removed", [])
+                    added_tokens = raw_token_diff.get("added", [])
+                    if removed_tokens and not added_tokens:
+                        strictness_delta = -1
+                    elif added_tokens and not removed_tokens:
+                        strictness_delta = 1
+                    elif len(removed_tokens) > len(added_tokens):
+                        strictness_delta = -1
+                    elif len(added_tokens) > len(removed_tokens):
+                        strictness_delta = -1
                 token_diff = raw_token_diff if self.options.return_token_diffs else None
                 review_required = (
                     clause_a.confidence < 0.8
@@ -238,6 +255,26 @@ class UCCComparer:
             warnings=warnings,
             timings_ms=timings,
         )
+
+    def _fallback_alignment(
+        self, clauses_a: Sequence[Clause], clauses_b: Sequence[Clause]
+    ) -> Dict[str, List[Tuple[str, float]]]:
+        """Minimal alignment fallback used when embedders return no matches."""
+
+        alignment: Dict[str, List[Tuple[str, float]]] = {}
+        for clause_a in clauses_a:
+            best_score = 0.0
+            best_clause: Optional[Clause] = None
+            for clause_b in clauses_b:
+                if clause_a.type != clause_b.type:
+                    continue
+                score = difflib.SequenceMatcher(None, clause_a.text, clause_b.text).ratio()
+                if score > best_score:
+                    best_score = score
+                    best_clause = clause_b
+            if best_clause and best_score >= self.options.similarity_threshold:
+                alignment[clause_a.id] = [(best_clause.id, float(best_score))]
+        return alignment
 
     def _parse_with_timing(
         self,

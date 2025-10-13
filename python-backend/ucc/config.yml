@@ -1,0 +1,33 @@
+thresholds:
+  ors_theta: 0.55
+  pos_sim_min: 0.45
+  neg_sim_max: 0.35
+layout:
+  top_bottom_margin_pct: 0.10
+  side_margin_pct: 0.05
+  repeat_pages_pct: 0.5
+whitelist_headings:
+  - cover
+  - insuring
+  - definition
+  - exclusion
+  - condition
+  - warranty
+  - endorsement
+  - extension
+  - limit
+  - excess
+  - deductible
+  - territory
+  - jurisdiction
+  - claims
+admin_blacklist:
+  - privacy
+  - complaints
+  - dispute
+  - tmd
+  - fsg
+  - general advice
+  - contact
+  - financial hardship
+  - code of practice

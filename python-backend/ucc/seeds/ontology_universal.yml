@@ -1,0 +1,16 @@
+Flood:
+  synonyms: ["flood", "inundation", "overflow of watercourse", "storm surge"]
+  include_terms: ["water", "river", "lake", "sea", "ocean", "tidal"]
+  exclude_terms: ["burst pipe", "seepage"]
+Cyber:
+  synonyms: ["cyber", "computer", "data breach", "malware", "unauthorized access"]
+  include_terms: ["network", "system", "data", "ransomware"]
+  exclude_terms: ["mechanical breakdown"]
+WarTerror:
+  synonyms: ["war", "warlike", "terrorism", "hostile act"]
+  include_terms: ["insurrection", "revolution", "military force"]
+  exclude_terms: []
+Pollution:
+  synonyms: ["pollution", "contamination", "seepage", "smoke", "soot", "fumes"]
+  include_terms: ["discharge", "release", "escape"]
+  exclude_terms: ["sudden and accidental carveback"]
