@@ -13,8 +13,14 @@ app = FastAPI(title="Insurance Policy Parser API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://*.railway.app",
+        "https://*.up.railway.app",
+    ],
+    allow_origin_regex=r"https://.*\.railway\.app",
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

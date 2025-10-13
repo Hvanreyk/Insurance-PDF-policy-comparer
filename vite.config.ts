@@ -10,4 +10,13 @@ export default defineConfig({
   worker: {
     format: 'es',
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: process.env.VITE_PYTHON_API_URL || 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
 });
