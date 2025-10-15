@@ -160,6 +160,22 @@ This MVP has the following limitations:
 3. **Client-Side Only**: All processing happens in the browser. Large PDFs may take time to process.
 4. **No OCR**: Currently does not support optical character recognition for scanned documents.
 
+## Troubleshooting
+
+### Build fails with “no space left on device”
+
+The development dependencies occupy a significant amount of disk space (roughly 150 MB in `node_modules` alone).【0fcb97†L1-L23】 When running the project inside a constrained container or CI environment the build cache can exhaust the available storage, triggering errors such as:
+
+```
+copy_file_range: no space left on device
+```
+
+To resolve this:
+
+- Remove cached build layers or prune Docker/BuildKit storage before retrying the build.
+- Ensure the environment provides sufficient free disk space (at least several hundred megabytes) before starting `npm install` or `npm run build`.
+- If space is tight, consider using `npm ci --prefer-offline` or a remote build cache to minimise duplicate downloads.
+
 ## Browser Support
 
 - Chrome/Edge 90+
