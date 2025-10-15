@@ -43,9 +43,10 @@ Upload two PDFs to compare
 ## Deployment Options
 
 ### Option 1: Railway.app (Recommended)
-1. Push code to GitHub
-2. Connect Railway to your repo
-3. Railway auto-detects Python and deploys
+1. Point your Railway service at the `python-backend` directory (Repository → Settings → Root Directory).
+2. Set the **Build Command** to `bash install.sh` so Railway installs `libgomp1` and the Python requirements during the build phase.
+3. Set the **Start Command** to `python main.py`.
+4. Trigger a deploy. Railway will run the build command automatically; no additional manual commands are required.
 
 ### Option 2: Render.com
 1. Push code to GitHub
