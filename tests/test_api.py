@@ -1,34 +1,7 @@
 from pathlib import Path
 import sys
-import types
 
 sys.path.append(str(Path(__file__).resolve().parents[1] / "python-backend"))
-
-google_stub = types.ModuleType("google")
-google_cloud_stub = types.ModuleType("google.cloud")
-storage_stub = types.ModuleType("google.cloud.storage")
-storage_stub.Client = lambda *args, **kwargs: None
-google_cloud_stub.storage = storage_stub
-
-google_oauth_stub = types.ModuleType("google.oauth2")
-service_account_stub = types.ModuleType("google.oauth2.service_account")
-service_account_stub.Credentials = types.SimpleNamespace(
-    from_service_account_info=lambda info: None
-)
-google_oauth_stub.service_account = service_account_stub
-
-sys.modules.setdefault("google", google_stub)
-sys.modules.setdefault("google.cloud", google_cloud_stub)
-sys.modules.setdefault("google.cloud.storage", storage_stub)
-sys.modules.setdefault("google.oauth2", google_oauth_stub)
-sys.modules.setdefault("google.oauth2.service_account", service_account_stub)
-
-requests_stub = types.ModuleType("requests")
-requests_stub.post = lambda *args, **kwargs: types.SimpleNamespace(
-    json=lambda: {},
-    raise_for_status=lambda: None,
-)
-sys.modules.setdefault("requests", requests_stub)
 
 from fastapi.testclient import TestClient
 
