@@ -1,0 +1,15 @@
+pycache/
+__pycache__/
+*.pdf
+*.csv
+*.zip
+*.log
+.git
+venv/
+.venv/
+node_modules/
+docs/
+data/
+policies/
+pgsql
+
