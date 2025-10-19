@@ -19,6 +19,24 @@ export interface PeriodOfInsurance {
   to: string;
 }
 
+export interface PolicyBlock {
+  id: string;
+  text: string;
+  page_number?: number;
+  bbox?: [number, number, number, number];
+  section_path?: string[];
+  is_admin?: boolean;
+  clause_type?: string;
+  ors?: number;
+  ors_threshold?: number;
+  is_operational?: boolean;
+  max_sim_positive?: number;
+  max_sim_negative?: number;
+  concepts?: string[];
+  cues?: string[];
+  why_kept?: string[];
+}
+
 export interface PolicyData {
   policy_year?: string;
   insurer?: string;
@@ -28,6 +46,7 @@ export interface PolicyData {
   sums_insured: SumsInsured;
   premium: Premium;
   raw_text?: string;
+  blocks?: PolicyBlock[];
 }
 
 export interface ComparisonDelta {
