@@ -123,6 +123,17 @@ async def compare_clauses(
         raise HTTPException(status_code=500, detail={"message": "Internal error", "trace_id": trace_id})
 
 
+@modern_router.post("/compare", response_model=UCCComparisonResult)
+async def compare_endpoint(
+    file_a: UploadFile = File(...),
+    file_b: UploadFile = File(...),
+    options: Optional[str] = Form(None),
+) -> UCCComparisonResult:
+    """Modern route delegating to the legacy comparison logic."""
+
+    return await compare_clauses(file_a=file_a, file_b=file_b, options=options)
+
+
 @modern_router.post("/preprocess")
 async def preprocess_endpoint(file: UploadFile = File(...)) -> Dict[str, List[Dict[str, object]]]:
     contents = await file.read()
