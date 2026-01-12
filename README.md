@@ -24,41 +24,47 @@ This MVP tool is designed for insurance brokers and clients to quickly compare p
 - ✅ Responsive design for desktop and mobile
 - ✅ Clean, modern UI with clear visual hierarchy
 
-### Future Enhancements (Coming Soon)
+### Advanced Features
 
-- 📋 PDF report generation with detailed comparisons
-- 📝 Wording and clause comparison
-- 📊 Historical trend analysis across multiple years
-- 🔍 OCR support for image-based PDFs
+- ✅ Wording and clause comparison (UCC - Universal Clause Comparer)
+- 📋 PDF report generation with detailed comparisons (planned)
+- 📊 Historical trend analysis across multiple years (planned)
+- 🔍 OCR support for image-based PDFs (planned)
 
 ## Technology Stack
 
 - **Frontend**: React 18 with TypeScript
+- **Backend**: Python FastAPI with pdfplumber
 - **Styling**: Tailwind CSS
 - **Build Tool**: Vite
 - **Icons**: Lucide React
-- **Deployment**: Static site (can be hosted on any web server)
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 18+ and npm
+- Python 3.11+
 
 ### Installation
 
+See [QUICKSTART.md](QUICKSTART.md) for detailed setup instructions.
+
+**Quick Setup:**
+
+1. **Start Python Backend:**
 ```bash
-# Install dependencies
+cd python-backend
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python main.py
+```
+
+2. **Start Frontend (new terminal):**
+```bash
 npm install
-
-# Start development server
 npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
 ```
 
 ### Usage
@@ -73,22 +79,18 @@ npm run preview
 
 ### PDF Parsing
 
-The tool uses client-side JavaScript to parse PDF text content. It searches for common patterns and keywords to extract:
+The tool uses a Python FastAPI backend with pdfplumber to parse PDF documents. The backend extracts:
 
 - Policy metadata (policy number, insurer, insured, dates)
 - Sums insured amounts
 - Premium components
+- Clause-level text blocks for wording comparison
 
-### Pattern Matching
+### API Endpoints
 
-The parser uses regex patterns to identify key values:
-
-```typescript
-// Example patterns
-- "Contents Replacement Value: $598,708"
-- "Turnover: $1,980,000"
-- "Total Premium: $ 4,091.30"
-```
+- `POST /api/parse-policy`: Parse a single policy PDF
+- `POST /api/compare-policies`: Compare two policy PDFs (numeric)
+- `POST /api/compare-clauses`: Compare policy wordings at clause level (UCC)
 
 ### Comparison Logic
 
@@ -107,17 +109,33 @@ For each extracted field, the tool calculates:
 ## Project Structure
 
 ```
-src/
-├── components/
-│   ├── PolicyUpload.tsx      # File upload component
-│   └── ComparisonView.tsx    # Comparison table and results
-├── types/
-│   └── policy.ts              # TypeScript interfaces
-├── utils/
-│   ├── pdfParser.ts           # PDF text extraction logic
-│   └── comparison.ts          # Comparison calculations
-├── App.tsx                    # Main application component
-└── index.css                  # Global styles
+├── src/                                    # React Frontend
+│   ├── components/
+│   │   ├── PolicyUpload.tsx               # PDF upload component
+│   │   ├── ComparisonView.tsx             # Numeric comparison table
+│   │   ├── PolicyWordingComparator.tsx    # Clause comparison UI
+│   │   ├── ClauseComparerUpload.tsx       # Clause comparer upload
+│   │   ├── EditablePolicyData.tsx         # Editable policy data
+│   │   └── clause/                        # Clause comparison components
+│   ├── types/
+│   │   ├── policy.ts                      # Policy data interfaces
+│   │   └── clauseComparison.ts            # UCC interfaces
+│   ├── utils/
+│   │   ├── pythonApiClient.ts             # Backend API client
+│   │   ├── comparison.ts                  # Comparison calculations
+│   │   └── clauseFilters.ts               # Clause filtering logic
+│   ├── App.tsx                            # Main application component
+│   └── index.css                          # Global styles
+│
+└── python-backend/                         # Python FastAPI Backend
+    ├── main.py                            # FastAPI application
+    ├── pdf_parser.py                      # PDF extraction
+    ├── comparison.py                      # Policy comparison
+    ├── requirements.txt                   # Python dependencies
+    └── ucc/                               # Universal Clause Comparer
+        ├── pipeline.py                    # UCC pipeline
+        ├── models_ucc.py                  # UCC data models
+        └── ...                            # Additional UCC modules
 ```
 
 ## Data Format
@@ -153,12 +171,9 @@ interface PolicyData {
 
 ## Limitations
 
-This MVP has the following limitations:
-
 1. **Text-Only PDFs**: Works best with text-based PDFs. Image-based or scanned PDFs may not parse correctly without OCR.
 2. **Pattern Matching**: Relies on common policy document patterns. Custom or unusual formats may require parser updates.
-3. **Client-Side Only**: All processing happens in the browser. Large PDFs may take time to process.
-4. **No OCR**: Currently does not support optical character recognition for scanned documents.
+3. **No OCR**: Currently does not support optical character recognition for scanned documents.
 
 ## Troubleshooting
 
@@ -184,10 +199,9 @@ To resolve this:
 
 ## Security & Privacy
 
-- All PDF processing happens locally in your browser
-- No data is sent to any server
-- No data is stored or logged
-- Safe to use with confidential policy documents
+- PDFs are processed by the backend and not persisted to disk
+- No data is permanently stored or logged
+- Suitable for confidential policy documents in a trusted deployment environment
 
 ## License
 
