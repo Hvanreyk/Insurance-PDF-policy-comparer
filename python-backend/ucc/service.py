@@ -4,26 +4,23 @@ from __future__ import annotations
 
 from typing import Dict, List, Sequence
 
+from .agents.document_layout import doc_id_from_pdf, run_document_layout
+from .config_loader import get_threshold
 from .cues.grammar import detect_cues, within_operational_length
 from .facets.extract import diff_facets as compute_facet_diff
 from .facets.extract import extract_facets
-from .io.pdf_blocks import load_pdf_blocks
 from .ontology.schema import link_concepts
-from .preprocess.furniture import remove_furniture
-from .preprocess.toc import apply_sections
 from .prototypes.library import load_library
 from .retrieval.align import align_blocks
 from .scoring.ors import compute_ors
 from .typing.clauses import classify_clause
-from .config_loader import get_threshold
 
 
 def preprocess_policy(pdf_bytes: bytes) -> List[Dict[str, object]]:
     """Full preprocessing pipeline returning structured block information."""
 
-    raw_blocks = load_pdf_blocks(pdf_bytes)
-    filtered_blocks = remove_furniture(raw_blocks)
-    apply_sections(filtered_blocks)
+    layout = run_document_layout(pdf_bytes, doc_id=doc_id_from_pdf(pdf_bytes))
+    filtered_blocks = layout.blocks
 
     library = load_library()
     proto_scores = library.score([block.text for block in filtered_blocks])
