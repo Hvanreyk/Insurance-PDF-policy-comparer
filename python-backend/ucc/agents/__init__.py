@@ -28,6 +28,12 @@ from .clause_dna import (
     get_dna_by_type,
     run_clause_dna_agent,
 )
+from .semantic_alignment import (
+    AlignmentResult,
+    get_alignment,
+    get_alignments,
+    run_semantic_alignment,
+)
 
 __all__ = [
     # Document Layout (Segment 1)
@@ -54,4 +60,9 @@ __all__ = [
     "get_clause_dna",
     "get_dna_by_type",
     "run_clause_dna_agent",
+    # Semantic Alignment (Segment 5)
+    "AlignmentResult",
+    "get_alignment",
+    "get_alignments",
+    "run_semantic_alignment",
 ]
