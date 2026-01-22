@@ -2,9 +2,19 @@
 
 from __future__ import annotations
 
-from typing import Dict, List, Sequence
+from dataclasses import dataclass
+from typing import Any, Dict, List, Sequence
 
-from .agents.document_layout import doc_id_from_pdf, run_document_layout
+from .agents.document_layout import (
+    LayoutResult,
+    doc_id_from_pdf,
+    run_document_layout,
+)
+from .agents.definitions import (
+    get_all_expanded_blocks,
+    get_definitions,
+    run_definitions_agent,
+)
 from .config_loader import get_threshold
 from .cues.grammar import detect_cues, within_operational_length
 from .facets.extract import diff_facets as compute_facet_diff
@@ -13,13 +23,34 @@ from .ontology.schema import link_concepts
 from .prototypes.library import load_library
 from .retrieval.align import align_blocks
 from .scoring.ors import compute_ors
+from .storage.definitions_store import BlockExpansion, Definition
 from .typing.clauses import classify_clause
 
 
-def preprocess_policy(pdf_bytes: bytes) -> List[Dict[str, object]]:
-    """Full preprocessing pipeline returning structured block information."""
+@dataclass
+class PolicyPreprocessResult:
+    """Result of full policy preprocessing (Segments 1 + 2)."""
 
-    layout = run_document_layout(pdf_bytes, doc_id=doc_id_from_pdf(pdf_bytes))
+    doc_id: str
+    blocks: List[Dict[str, object]]
+    definitions: List[Definition]
+    expansions: List[BlockExpansion]
+
+
+def preprocess_policy(
+    pdf_bytes: bytes,
+    *,
+    layout: LayoutResult | None = None,
+) -> List[Dict[str, object]]:
+    """Full preprocessing pipeline returning structured block information.
+
+    Args:
+        pdf_bytes: Raw PDF content.
+        layout: Optional pre-computed layout result. If not provided, the
+            document layout pipeline will be executed.
+    """
+    if layout is None:
+        layout = run_document_layout(pdf_bytes, doc_id=doc_id_from_pdf(pdf_bytes))
     filtered_blocks = layout.blocks
 
     library = load_library()
@@ -81,6 +112,33 @@ def preprocess_policy(pdf_bytes: bytes) -> List[Dict[str, object]]:
             }
         )
     return processed
+
+
+def preprocess_policy_full(pdf_bytes: bytes) -> PolicyPreprocessResult:
+    """
+    Full preprocessing pipeline: Segment 1 (layout) + Segment 2 (definitions).
+
+    Returns structured block information with definitions and expanded text.
+    """
+    doc_id = doc_id_from_pdf(pdf_bytes)
+
+    # Segment 1: Document Layout
+    layout = run_document_layout(pdf_bytes, doc_id=doc_id)
+
+    # Segment 2: Definitions
+    run_definitions_agent(doc_id)
+
+    # Build result reusing the layout we already computed
+    blocks = preprocess_policy(pdf_bytes, layout=layout)
+    definitions = get_definitions(doc_id)
+    expansions = get_all_expanded_blocks(doc_id)
+
+    return PolicyPreprocessResult(
+        doc_id=doc_id,
+        blocks=blocks,
+        definitions=definitions,
+        expansions=expansions,
+    )
 
 
 def align_policy_blocks(
