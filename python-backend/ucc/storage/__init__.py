@@ -9,6 +9,13 @@ from .definitions_store import (
     DefinitionType,
     TermMention,
 )
+from .classification_store import (
+    BlockClassification,
+    ClassificationResult,
+    ClassificationStore,
+    ClauseType,
+    CLAUSE_TYPE_PRECEDENCE,
+)
 
 __all__ = [
     # Layout (Segment 1)
@@ -21,4 +28,10 @@ __all__ = [
     "DefinitionsStore",
     "DefinitionType",
     "TermMention",
+    # Classification (Segment 3)
+    "BlockClassification",
+    "ClassificationResult",
+    "ClassificationStore",
+    "ClauseType",
+    "CLAUSE_TYPE_PRECEDENCE",
 ]

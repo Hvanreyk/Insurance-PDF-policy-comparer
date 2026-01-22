@@ -15,6 +15,10 @@ from .agents.definitions import (
     get_definitions,
     run_definitions_agent,
 )
+from .agents.clause_classification import (
+    get_all_classifications,
+    run_clause_classification,
+)
 from .config_loader import get_threshold
 from .cues.grammar import detect_cues, within_operational_length
 from .facets.extract import diff_facets as compute_facet_diff
@@ -23,18 +27,20 @@ from .ontology.schema import link_concepts
 from .prototypes.library import load_library
 from .retrieval.align import align_blocks
 from .scoring.ors import compute_ors
+from .storage.classification_store import BlockClassification
 from .storage.definitions_store import BlockExpansion, Definition
 from .typing.clauses import classify_clause
 
 
 @dataclass
 class PolicyPreprocessResult:
-    """Result of full policy preprocessing (Segments 1 + 2)."""
+    """Result of full policy preprocessing (Segments 1 + 2 + 3)."""
 
     doc_id: str
     blocks: List[Dict[str, object]]
     definitions: List[Definition]
     expansions: List[BlockExpansion]
+    classifications: List[BlockClassification]
 
 
 def preprocess_policy(
@@ -116,9 +122,13 @@ def preprocess_policy(
 
 def preprocess_policy_full(pdf_bytes: bytes) -> PolicyPreprocessResult:
     """
-    Full preprocessing pipeline: Segment 1 (layout) + Segment 2 (definitions).
+    Full preprocessing pipeline: Segments 1-3.
 
-    Returns structured block information with definitions and expanded text.
+    - Segment 1: Document Layout
+    - Segment 2: Definitions extraction + expansion
+    - Segment 3: Clause classification
+
+    Returns structured block information with definitions, expansions, and classifications.
     """
     doc_id = doc_id_from_pdf(pdf_bytes)
 
@@ -128,16 +138,21 @@ def preprocess_policy_full(pdf_bytes: bytes) -> PolicyPreprocessResult:
     # Segment 2: Definitions
     run_definitions_agent(doc_id)
 
+    # Segment 3: Clause Classification
+    run_clause_classification(doc_id)
+
     # Build result reusing the layout we already computed
     blocks = preprocess_policy(pdf_bytes, layout=layout)
     definitions = get_definitions(doc_id)
     expansions = get_all_expanded_blocks(doc_id)
+    classifications = get_all_classifications(doc_id)
 
     return PolicyPreprocessResult(
         doc_id=doc_id,
         blocks=blocks,
         definitions=definitions,
         expansions=expansions,
+        classifications=classifications,
     )
 
 

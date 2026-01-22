@@ -14,6 +14,13 @@ from .definitions import (
     get_term_mentions,
     run_definitions_agent,
 )
+from .clause_classification import (
+    ClassificationResult,
+    get_all_classifications,
+    get_blocks_by_clause_type,
+    get_classification,
+    run_clause_classification,
+)
 
 __all__ = [
     # Document Layout (Segment 1)
@@ -28,4 +35,10 @@ __all__ = [
     "get_expanded_block_text",
     "get_term_mentions",
     "run_definitions_agent",
+    # Clause Classification (Segment 3)
+    "ClassificationResult",
+    "get_all_classifications",
+    "get_blocks_by_clause_type",
+    "get_classification",
+    "run_clause_classification",
 ]
