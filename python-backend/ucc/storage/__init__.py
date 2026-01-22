@@ -16,6 +16,13 @@ from .classification_store import (
     ClauseType,
     CLAUSE_TYPE_PRECEDENCE,
 )
+from .dna_store import (
+    ClauseDNA,
+    ClauseDNAResult,
+    DNAStore,
+    Polarity,
+    Strictness,
+)
 
 __all__ = [
     # Layout (Segment 1)
@@ -34,4 +41,10 @@ __all__ = [
     "ClassificationStore",
     "ClauseType",
     "CLAUSE_TYPE_PRECEDENCE",
+    # DNA (Segment 4)
+    "ClauseDNA",
+    "ClauseDNAResult",
+    "DNAStore",
+    "Polarity",
+    "Strictness",
 ]
