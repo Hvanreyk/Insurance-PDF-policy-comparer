@@ -23,6 +23,12 @@ from .dna_store import (
     Polarity,
     Strictness,
 )
+from .alignment_store import (
+    AlignmentResult,
+    AlignmentStore,
+    AlignmentType,
+    ClauseAlignment,
+)
 
 __all__ = [
     # Layout (Segment 1)
@@ -47,4 +53,9 @@ __all__ = [
     "DNAStore",
     "Polarity",
     "Strictness",
+    # Alignment (Segment 5)
+    "AlignmentResult",
+    "AlignmentStore",
+    "AlignmentType",
+    "ClauseAlignment",
 ]

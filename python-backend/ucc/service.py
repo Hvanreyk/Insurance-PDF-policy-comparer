@@ -23,6 +23,10 @@ from .agents.clause_dna import (
     get_all_dna,
     run_clause_dna_agent,
 )
+from .agents.semantic_alignment import (
+    get_alignments,
+    run_semantic_alignment,
+)
 from .config_loader import get_threshold
 from .cues.grammar import detect_cues, within_operational_length
 from .facets.extract import diff_facets as compute_facet_diff
@@ -31,6 +35,7 @@ from .ontology.schema import link_concepts
 from .prototypes.library import load_library
 from .retrieval.align import align_blocks
 from .scoring.ors import compute_ors
+from .storage.alignment_store import ClauseAlignment
 from .storage.classification_store import BlockClassification
 from .storage.definitions_store import BlockExpansion, Definition
 from .storage.dna_store import ClauseDNA
@@ -47,6 +52,16 @@ class PolicyPreprocessResult:
     expansions: List[BlockExpansion]
     classifications: List[BlockClassification]
     clause_dna: List[ClauseDNA]
+
+
+@dataclass
+class PolicyComparisonResult:
+    """Result of comparing two policies (Segments 1-5)."""
+
+    doc_id_a: str
+    doc_id_b: str
+    alignments: List[ClauseAlignment]
+    stats: Dict[str, Any]
 
 
 def preprocess_policy(
@@ -216,3 +231,41 @@ def diff_policy_facets(
             }
         )
     return diffs
+
+
+def compare_policies(pdf_bytes_a: bytes, pdf_bytes_b: bytes) -> PolicyComparisonResult:
+    """
+    Full policy comparison pipeline: Segments 1-5 for both documents.
+
+    - Segment 1: Document Layout
+    - Segment 2: Definitions extraction + expansion
+    - Segment 3: Clause classification
+    - Segment 4: Clause DNA extraction
+    - Segment 5: Semantic alignment
+
+    Returns aligned clauses between the two policies.
+    """
+    doc_id_a = doc_id_from_pdf(pdf_bytes_a)
+    doc_id_b = doc_id_from_pdf(pdf_bytes_b)
+
+    # Run Segments 1-4 for document A
+    layout_a = run_document_layout(pdf_bytes_a, doc_id=doc_id_a)
+    run_definitions_agent(doc_id_a)
+    run_clause_classification(doc_id_a)
+    run_clause_dna_agent(doc_id_a)
+
+    # Run Segments 1-4 for document B
+    layout_b = run_document_layout(pdf_bytes_b, doc_id=doc_id_b)
+    run_definitions_agent(doc_id_b)
+    run_clause_classification(doc_id_b)
+    run_clause_dna_agent(doc_id_b)
+
+    # Segment 5: Semantic Alignment
+    alignment_result = run_semantic_alignment(doc_id_a, doc_id_b)
+
+    return PolicyComparisonResult(
+        doc_id_a=doc_id_a,
+        doc_id_b=doc_id_b,
+        alignments=alignment_result.alignments,
+        stats=alignment_result.stats,
+    )
