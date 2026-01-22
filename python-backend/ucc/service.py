@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Dict, List, Sequence
+from dataclasses import dataclass
+from typing import Any, Dict, List, Sequence
 
 from .agents.document_layout import doc_id_from_pdf, run_document_layout
+from .agents.definitions import (
+    get_all_expanded_blocks,
+    get_definitions,
+    run_definitions_agent,
+)
 from .config_loader import get_threshold
 from .cues.grammar import detect_cues, within_operational_length
 from .facets.extract import diff_facets as compute_facet_diff
@@ -13,7 +19,18 @@ from .ontology.schema import link_concepts
 from .prototypes.library import load_library
 from .retrieval.align import align_blocks
 from .scoring.ors import compute_ors
+from .storage.definitions_store import BlockExpansion, Definition
 from .typing.clauses import classify_clause
+
+
+@dataclass
+class PolicyPreprocessResult:
+    """Result of full policy preprocessing (Segments 1 + 2)."""
+
+    doc_id: str
+    blocks: List[Dict[str, object]]
+    definitions: List[Definition]
+    expansions: List[BlockExpansion]
 
 
 def preprocess_policy(pdf_bytes: bytes) -> List[Dict[str, object]]:
@@ -81,6 +98,33 @@ def preprocess_policy(pdf_bytes: bytes) -> List[Dict[str, object]]:
             }
         )
     return processed
+
+
+def preprocess_policy_full(pdf_bytes: bytes) -> PolicyPreprocessResult:
+    """
+    Full preprocessing pipeline: Segment 1 (layout) + Segment 2 (definitions).
+
+    Returns structured block information with definitions and expanded text.
+    """
+    doc_id = doc_id_from_pdf(pdf_bytes)
+
+    # Segment 1: Document Layout
+    run_document_layout(pdf_bytes, doc_id=doc_id)
+
+    # Segment 2: Definitions
+    run_definitions_agent(doc_id)
+
+    # Build result using standard preprocess_policy for blocks
+    blocks = preprocess_policy(pdf_bytes)
+    definitions = get_definitions(doc_id)
+    expansions = get_all_expanded_blocks(doc_id)
+
+    return PolicyPreprocessResult(
+        doc_id=doc_id,
+        blocks=blocks,
+        definitions=definitions,
+        expansions=expansions,
+    )
 
 
 def align_policy_blocks(
