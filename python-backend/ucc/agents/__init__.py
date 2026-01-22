@@ -21,6 +21,13 @@ from .clause_classification import (
     get_classification,
     run_clause_classification,
 )
+from .clause_dna import (
+    ClauseDNAResult,
+    get_all_dna,
+    get_clause_dna,
+    get_dna_by_type,
+    run_clause_dna_agent,
+)
 
 __all__ = [
     # Document Layout (Segment 1)
@@ -41,4 +48,10 @@ __all__ = [
     "get_blocks_by_clause_type",
     "get_classification",
     "run_clause_classification",
+    # Clause DNA (Segment 4)
+    "ClauseDNAResult",
+    "get_all_dna",
+    "get_clause_dna",
+    "get_dna_by_type",
+    "run_clause_dna_agent",
 ]
