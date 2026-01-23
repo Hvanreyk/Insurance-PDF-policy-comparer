@@ -29,6 +29,13 @@ from .alignment_store import (
     AlignmentType,
     ClauseAlignment,
 )
+from .delta_store import (
+    ClauseDelta,
+    DeltaDirection,
+    DeltaResult,
+    DeltaStore,
+    DeltaType,
+)
 
 __all__ = [
     # Layout (Segment 1)
@@ -58,4 +65,10 @@ __all__ = [
     "AlignmentStore",
     "AlignmentType",
     "ClauseAlignment",
+    # Delta (Segment 6)
+    "ClauseDelta",
+    "DeltaDirection",
+    "DeltaResult",
+    "DeltaStore",
+    "DeltaType",
 ]

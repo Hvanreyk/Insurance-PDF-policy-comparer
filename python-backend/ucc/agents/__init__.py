@@ -34,6 +34,12 @@ from .semantic_alignment import (
     get_alignments,
     run_semantic_alignment,
 )
+from .delta_interpretation import (
+    DeltaResult,
+    get_deltas,
+    get_deltas_for_clause,
+    run_delta_interpretation,
+)
 
 __all__ = [
     # Document Layout (Segment 1)
@@ -65,4 +71,9 @@ __all__ = [
     "get_alignment",
     "get_alignments",
     "run_semantic_alignment",
+    # Delta Interpretation (Segment 6)
+    "DeltaResult",
+    "get_deltas",
+    "get_deltas_for_clause",
+    "run_delta_interpretation",
 ]
