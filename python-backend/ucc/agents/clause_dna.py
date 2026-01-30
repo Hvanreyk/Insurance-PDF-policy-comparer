@@ -333,36 +333,69 @@ def _extract_numbers(text: str, clause_type: ClauseType) -> Tuple[Dict[str, Any]
     numbers: Dict[str, Any] = {}
     signals: List[str] = []
     
-    # Extract all currency amounts
-    currency_matches = NUMBER_PATTERNS["currency"].findall(text)
-    if currency_matches:
-        # Determine context for each match
-        amounts = []
-        for match in currency_matches:
-            try:
-                # Clean and convert to float
-                clean_val = match.replace(",", "")
-                val = float(clean_val)
-                amounts.append(val)
-            except (ValueError, AttributeError):
-                continue
+    # Context patterns with their category names
+    context_patterns = [
+        (SUBLIMIT_CONTEXT, "sublimits"),  # More specific patterns first
+        (DEDUCTIBLE_CONTEXT, "deductibles"),
+        (LIMIT_CONTEXT, "limits"),
+    ]
+    
+    # Maximum distance to associate an amount with a context keyword
+    MAX_CONTEXT_DISTANCE = 80
+    
+    # Extract currency amounts with proximity-based context
+    currency_pattern = NUMBER_PATTERNS["currency"]
+    categorized: Dict[str, List[float]] = {
+        "limits": [],
+        "sublimits": [],
+        "deductibles": [],
+        "amounts": [],  # uncategorized
+    }
+    
+    for match in currency_pattern.finditer(text):
+        try:
+            # Clean and convert to float
+            clean_val = match.group(1).replace(",", "")
+            val = float(clean_val)
+        except (ValueError, AttributeError, IndexError):
+            continue
         
-        if amounts:
-            # Check context to categorize
-            if LIMIT_CONTEXT.search(text):
-                numbers["limits"] = amounts
-                signals.append(f"limits: {amounts}")
-            if DEDUCTIBLE_CONTEXT.search(text):
-                numbers["deductibles"] = amounts
-                signals.append(f"deductibles: {amounts}")
-            if SUBLIMIT_CONTEXT.search(text):
-                numbers["sublimits"] = amounts
-                signals.append(f"sublimits: {amounts}")
-            
-            # If no specific context, store as general amounts
-            if not numbers:
-                numbers["amounts"] = amounts
-                signals.append(f"amounts: {amounts}")
+        amount_pos = match.start()
+        
+        # Find the nearest context keyword and its category
+        nearest_category = None
+        nearest_distance = MAX_CONTEXT_DISTANCE + 1
+        
+        for pattern, category in context_patterns:
+            for ctx_match in pattern.finditer(text):
+                # Calculate distance from context keyword to amount
+                # Context can appear before or after the amount
+                ctx_start = ctx_match.start()
+                ctx_end = ctx_match.end()
+                
+                if ctx_end <= amount_pos:
+                    # Context is before amount
+                    distance = amount_pos - ctx_end
+                else:
+                    # Context is after amount
+                    distance = ctx_start - match.end()
+                
+                # Only consider contexts within the max distance
+                if 0 <= distance < nearest_distance:
+                    nearest_distance = distance
+                    nearest_category = category
+        
+        # Assign to the nearest category, or "amounts" if no context found
+        if nearest_category:
+            categorized[nearest_category].append(val)
+        else:
+            categorized["amounts"].append(val)
+    
+    # Populate numbers dict and signals only for non-empty categories
+    for category, values in categorized.items():
+        if values:
+            numbers[category] = values
+            signals.append(f"{category}: {values}")
     
     # Extract percentages
     pct_matches = NUMBER_PATTERNS["percentage"].findall(text)
