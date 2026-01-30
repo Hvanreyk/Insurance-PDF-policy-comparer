@@ -40,6 +40,12 @@ from .delta_interpretation import (
     get_deltas_for_clause,
     run_delta_interpretation,
 )
+from .narrative_summarisation import (
+    NarrativeResult,
+    get_bullets,
+    get_summary,
+    run_narrative_summarisation,
+)
 
 __all__ = [
     # Document Layout (Segment 1)
@@ -76,4 +82,9 @@ __all__ = [
     "get_deltas",
     "get_deltas_for_clause",
     "run_delta_interpretation",
+    # Narrative Summarisation (Segment 7)
+    "NarrativeResult",
+    "get_bullets",
+    "get_summary",
+    "run_narrative_summarisation",
 ]

@@ -67,7 +67,7 @@ def _hash_bytes(payload: bytes) -> str:
 @dataclass(frozen=True)
 class PersistedDocument:
     doc_id: str
-    filename: str
+    source_uri: str  # Stored in DB column 'filename' for backwards compatibility
     doc_hash: str
     created_at: str
 
@@ -88,19 +88,20 @@ class LayoutStore:
     def persist(
         self,
         doc_id: str,
-        filename: str | None,
+        source_uri: str | None,
         pdf_bytes: bytes,
         blocks: Iterable[Block],
     ) -> PersistedDocument:
         doc_hash = _hash_bytes(pdf_bytes)
         created_at = datetime.now(timezone.utc).isoformat()
         with self._connect() as conn:
+            # Note: DB column is 'filename' for backwards compatibility
             conn.execute(
                 """
                 INSERT OR REPLACE INTO documents (doc_id, filename, doc_hash, created_at)
                 VALUES (?, ?, ?, ?)
                 """,
-                (doc_id, filename or "", doc_hash, created_at),
+                (doc_id, source_uri or "", doc_hash, created_at),
             )
             conn.execute("DELETE FROM blocks WHERE doc_id = ?", (doc_id,))
             for block in blocks:
@@ -132,7 +133,7 @@ class LayoutStore:
                 )
         return PersistedDocument(
             doc_id=doc_id,
-            filename=filename or "",
+            source_uri=source_uri or "",
             doc_hash=doc_hash,
             created_at=created_at,
         )
