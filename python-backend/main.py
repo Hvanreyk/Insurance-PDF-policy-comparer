@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from pdf_parser import parse_policy_pdf
 from comparison import compare_policies
 from routes.ucc import router as ucc_router
+from routes.raindrop import router as raindrop_router
 
 load_dotenv()
 
@@ -22,6 +23,7 @@ app.add_middleware(
 )
 
 app.include_router(ucc_router)
+app.include_router(raindrop_router)
 
 @app.get("/")
 async def root():
