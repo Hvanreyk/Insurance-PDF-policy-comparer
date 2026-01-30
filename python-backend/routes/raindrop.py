@@ -215,11 +215,12 @@ async def get_section_clauses_endpoint(
 ) -> List[ClauseItemResponse]:
     """Get clauses within a section.
     
-    The section_id is the section path joined by underscores (e.g., "cover_fire").
+    The section_id uses double underscores to separate path segments,
+    with single underscores for spaces within segments (e.g., "cover__business_interruption").
     Returns clauses with match status and delta counts if comparing.
     """
-    # Convert section_id back to path
-    section_path = [s.replace("_", " ").title() for s in section_id.split("_")]
+    # Convert section_id back to path (split on double underscore, then restore spaces)
+    section_path = [seg.replace("_", " ").title() for seg in section_id.split("__")]
     
     clauses = get_section_detail(doc_id, section_path, compare_to_doc_id=compare_to)
     return [ClauseItemResponse(**asdict(c)) for c in clauses]

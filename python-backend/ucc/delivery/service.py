@@ -352,7 +352,8 @@ def get_policy_sections(
     # Build section items
     results: List[SectionItem] = []
     for section_path, section_block_list in sorted(section_blocks.items()):
-        section_id = "_".join(section_path).replace(" ", "_").lower()
+        # Use double underscore as segment delimiter, single underscore for spaces within segments
+        section_id = "__".join(seg.replace(" ", "_").lower() for seg in section_path)
         title = section_path[-1] if section_path else "Uncategorized"
         
         # Calculate section-level similarity if comparing
