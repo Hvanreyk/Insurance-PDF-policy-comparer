@@ -31,6 +31,10 @@ from .agents.delta_interpretation import (
     get_deltas,
     run_delta_interpretation,
 )
+from .agents.narrative_summarisation import (
+    get_summary,
+    run_narrative_summarisation,
+)
 from .config_loader import get_threshold
 from .cues.grammar import detect_cues, within_operational_length
 from .facets.extract import diff_facets as compute_facet_diff
@@ -43,6 +47,7 @@ from .storage.alignment_store import ClauseAlignment
 from .storage.classification_store import BlockClassification
 from .storage.definitions_store import BlockExpansion, Definition
 from .storage.delta_store import ClauseDelta
+from .storage.summary_store import NarrativeResult, SummaryBullet
 from .storage.dna_store import ClauseDNA
 from .typing.clauses import classify_clause
 
@@ -61,12 +66,13 @@ class PolicyPreprocessResult:
 
 @dataclass
 class PolicyComparisonResult:
-    """Result of comparing two policies (Segments 1-6)."""
+    """Result of comparing two policies (Segments 1-7)."""
 
     doc_id_a: str
     doc_id_b: str
     alignments: List[ClauseAlignment]
     deltas: List[ClauseDelta]
+    summary: NarrativeResult | None
     stats: Dict[str, Any]
 
 
@@ -241,7 +247,7 @@ def diff_policy_facets(
 
 def compare_policies(pdf_bytes_a: bytes, pdf_bytes_b: bytes) -> PolicyComparisonResult:
     """
-    Full policy comparison pipeline: Segments 1-6 for both documents.
+    Full policy comparison pipeline: Segments 1-7 for both documents.
 
     - Segment 1: Document Layout
     - Segment 2: Definitions extraction + expansion
@@ -249,8 +255,9 @@ def compare_policies(pdf_bytes_a: bytes, pdf_bytes_b: bytes) -> PolicyComparison
     - Segment 4: Clause DNA extraction
     - Segment 5: Semantic alignment
     - Segment 6: Delta interpretation
+    - Segment 7: Narrative summarisation
 
-    Returns aligned clauses and detected deltas between the two policies.
+    Returns aligned clauses, detected deltas, and human-readable summary bullets.
     """
     doc_id_a = doc_id_from_pdf(pdf_bytes_a)
     doc_id_b = doc_id_from_pdf(pdf_bytes_b)
@@ -273,10 +280,18 @@ def compare_policies(pdf_bytes_a: bytes, pdf_bytes_b: bytes) -> PolicyComparison
     # Segment 6: Delta Interpretation
     delta_result = run_delta_interpretation(doc_id_a, doc_id_b)
 
+    # Segment 7: Narrative Summarisation
+    summary_result = run_narrative_summarisation(doc_id_a, doc_id_b)
+
     # Combine stats
     combined_stats = {
         **alignment_result.stats,
         "deltas": delta_result.stats,
+        "summary": {
+            "total_bullets": summary_result.counts.total_bullets,
+            "review_needed": summary_result.counts.review_needed,
+            "confidence": summary_result.confidence,
+        },
     }
 
     return PolicyComparisonResult(
@@ -284,5 +299,6 @@ def compare_policies(pdf_bytes_a: bytes, pdf_bytes_b: bytes) -> PolicyComparison
         doc_id_b=doc_id_b,
         alignments=alignment_result.alignments,
         deltas=delta_result.deltas,
+        summary=summary_result,
         stats=combined_stats,
     )

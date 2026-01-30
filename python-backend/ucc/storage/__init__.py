@@ -36,6 +36,15 @@ from .delta_store import (
     DeltaStore,
     DeltaType,
 )
+from .summary_store import (
+    BulletDirection,
+    BulletSeverity,
+    EvidenceRef,
+    NarrativeResult,
+    SummaryBullet,
+    SummaryCounts,
+    SummaryStore,
+)
 
 __all__ = [
     # Layout (Segment 1)
@@ -71,4 +80,12 @@ __all__ = [
     "DeltaResult",
     "DeltaStore",
     "DeltaType",
+    # Summary (Segment 7)
+    "BulletDirection",
+    "BulletSeverity",
+    "EvidenceRef",
+    "NarrativeResult",
+    "SummaryBullet",
+    "SummaryCounts",
+    "SummaryStore",
 ]
