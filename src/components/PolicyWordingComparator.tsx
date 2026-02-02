@@ -1,13 +1,21 @@
-import { useState, useMemo } from 'react';
-import { Play, Download, RefreshCw, AlertCircle } from 'lucide-react';
+import { useState, useMemo, useCallback } from 'react';
+import { Play, Download, RefreshCw, AlertCircle, Zap, Clock } from 'lucide-react';
 import ClauseComparerUpload from './ClauseComparerUpload';
 import SummaryBanner from './clause/SummaryBanner';
 import FilterToolbar from './clause/FilterToolbar';
 import ClauseMatchResults from './clause/ClauseMatchResults';
 import WarningsTimingsPanel from './clause/WarningsTimingsPanel';
+import JobProgressPanel from './clause/JobProgressPanel';
 import { UCCComparisonResult, FilterState, ClauseStatus } from '../types/clauseComparison';
-import { compareClausesViaPython } from '../utils/pythonApiClient';
+import { 
+  submitComparisonJob, 
+  getJobResult,
+  compareClausesViaPython,
+  JobSubmitResponse,
+} from '../utils/pythonApiClient';
 import { filterClauseMatches, countActiveFilters } from '../utils/clauseFilters';
+
+type ProcessingMode = 'sync' | 'async';
 
 export default function PolicyWordingComparator() {
   const [fileA, setFileA] = useState<File | null>(null);
@@ -15,6 +23,10 @@ export default function PolicyWordingComparator() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [result, setResult] = useState<UCCComparisonResult | null>(null);
+  
+  // Async job state
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [processingMode, setProcessingMode] = useState<ProcessingMode>('async');
 
   const [filters, setFilters] = useState<FilterState>({
     statuses: new Set<ClauseStatus>(['added', 'removed', 'modified', 'unchanged']),
@@ -32,6 +44,34 @@ export default function PolicyWordingComparator() {
     return countActiveFilters(filters);
   }, [filters]);
 
+  // Async job completion handler
+  const handleJobComplete = useCallback(async () => {
+    if (!jobId) return;
+    
+    try {
+      const comparisonResult = await getJobResult(jobId);
+      setResult(comparisonResult);
+      setJobId(null);
+      setLoading(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to retrieve comparison results');
+      setJobId(null);
+      setLoading(false);
+    }
+  }, [jobId]);
+
+  const handleJobError = useCallback((errorMessage: string) => {
+    setError(errorMessage);
+    setJobId(null);
+    setLoading(false);
+  }, []);
+
+  const handleJobCancel = useCallback(() => {
+    setJobId(null);
+    setLoading(false);
+    setError('Comparison cancelled');
+  }, []);
+
   const handleRunComparison = async () => {
     if (!fileA || !fileB) {
       setError('Please upload both policy documents');
@@ -41,14 +81,26 @@ export default function PolicyWordingComparator() {
     setLoading(true);
     setError('');
 
-    try {
-      const comparisonResult = await compareClausesViaPython(fileA, fileB);
-      setResult(comparisonResult);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to compare policy clauses');
-      console.error('Comparison error:', err);
-    } finally {
-      setLoading(false);
+    if (processingMode === 'async') {
+      // Async mode - submit job and track progress
+      try {
+        const response: JobSubmitResponse = await submitComparisonJob(fileA, fileB);
+        setJobId(response.job_id);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to submit comparison job');
+        setLoading(false);
+      }
+    } else {
+      // Sync mode - wait for full result (fallback)
+      try {
+        const comparisonResult = await compareClausesViaPython(fileA, fileB);
+        setResult(comparisonResult);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to compare policy clauses');
+        console.error('Comparison error:', err);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -56,7 +108,9 @@ export default function PolicyWordingComparator() {
     setFileA(null);
     setFileB(null);
     setResult(null);
+    setJobId(null);
     setError('');
+    setLoading(false);
     setFilters({
       statuses: new Set<ClauseStatus>(['added', 'removed', 'modified', 'unchanged']),
       clauseType: 'All Types',
@@ -91,6 +145,23 @@ export default function PolicyWordingComparator() {
     URL.revokeObjectURL(url);
   };
 
+  // Show progress panel when job is running
+  if (jobId && loading) {
+    return (
+      <div className="space-y-6">
+        <JobProgressPanel
+          jobId={jobId}
+          fileNameA={fileA?.name}
+          fileNameB={fileB?.name}
+          onComplete={handleJobComplete}
+          onError={handleJobError}
+          onCancel={handleJobCancel}
+        />
+      </div>
+    );
+  }
+
+  // Show results when comparison is complete
   if (result) {
     return (
       <div className="space-y-6">
@@ -152,6 +223,7 @@ export default function PolicyWordingComparator() {
     );
   }
 
+  // Show upload interface
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
@@ -187,24 +259,61 @@ export default function PolicyWordingComparator() {
       />
 
       {fileA && fileB && (
-        <div className="flex justify-center">
-          <button
-            onClick={handleRunComparison}
-            disabled={loading}
-            className="flex items-center gap-3 px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
-          >
-            {loading ? (
-              <>
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                Analyzing Clauses...
-              </>
-            ) : (
-              <>
-                <Play className="w-6 h-6" />
-                Run Universal Clause Comparer
-              </>
-            )}
-          </button>
+        <div className="space-y-4">
+          {/* Processing Mode Toggle */}
+          <div className="flex justify-center">
+            <div className="bg-slate-100 rounded-lg p-1 inline-flex gap-1">
+              <button
+                onClick={() => setProcessingMode('async')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                  processingMode === 'async'
+                    ? 'bg-white text-slate-800 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-800'
+                }`}
+              >
+                <Zap className="w-4 h-4" />
+                With Progress Tracking
+              </button>
+              <button
+                onClick={() => setProcessingMode('sync')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                  processingMode === 'sync'
+                    ? 'bg-white text-slate-800 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-800'
+                }`}
+              >
+                <Clock className="w-4 h-4" />
+                Simple Mode
+              </button>
+            </div>
+          </div>
+
+          {/* Run Button */}
+          <div className="flex justify-center">
+            <button
+              onClick={handleRunComparison}
+              disabled={loading}
+              className="flex items-center gap-3 px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                  {processingMode === 'async' ? 'Submitting Job...' : 'Analyzing Clauses...'}
+                </>
+              ) : (
+                <>
+                  <Play className="w-6 h-6" />
+                  Run Universal Clause Comparer
+                </>
+              )}
+            </button>
+          </div>
+
+          {processingMode === 'async' && (
+            <p className="text-center text-sm text-slate-500">
+              Progress tracking mode provides real-time updates as each analysis step completes
+            </p>
+          )}
         </div>
       )}
 
@@ -237,14 +346,16 @@ export default function PolicyWordingComparator() {
                 4
               </span>
               <span>
-                Review added, removed, and modified clauses with materiality scores
+                Watch real-time progress as each analysis step completes
               </span>
             </li>
             <li className="flex gap-3">
               <span className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-sm font-semibold">
                 5
               </span>
-              <span>Use filters to focus on specific clause types or risk levels</span>
+              <span>
+                Review added, removed, and modified clauses with materiality scores
+              </span>
             </li>
             <li className="flex gap-3">
               <span className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-sm font-semibold">

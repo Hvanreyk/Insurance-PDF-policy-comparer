@@ -1,0 +1,135 @@
+version: "3.9"
+
+# Insurance Policy Comparison Platform
+# Multi-service architecture with async task processing
+
+services:
+  # ==========================================================================
+  # FastAPI Application Server
+  # ==========================================================================
+  api:
+    build:
+      context: ./python-backend
+      dockerfile: Dockerfile
+    container_name: ucc-api
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - UCC_LAYOUT_DB_PATH=/data/layout.db
+      - UCC_JOBS_DB_PATH=/data/jobs.db
+    volumes:
+      - ucc-data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - ucc-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Celery Worker for Async Task Processing
+  # ==========================================================================
+  celery-worker:
+    build:
+      context: ./python-backend
+      dockerfile: Dockerfile
+    container_name: ucc-celery-worker
+    command: celery -A celery_app worker --loglevel=info --concurrency=2
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - UCC_LAYOUT_DB_PATH=/data/layout.db
+      - UCC_JOBS_DB_PATH=/data/jobs.db
+    volumes:
+      - ucc-data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - ucc-network
+    restart: unless-stopped
+    # Scale with: docker-compose up --scale celery-worker=4
+
+  # ==========================================================================
+  # Redis - Message Broker & Result Backend
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: ucc-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - ucc-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # ==========================================================================
+  # Flower - Celery Monitoring Dashboard
+  # ==========================================================================
+  flower:
+    image: mher/flower:2.0
+    container_name: ucc-flower
+    command: celery --broker=redis://redis:6379/0 flower --port=5555
+    ports:
+      - "5555:5555"
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - ucc-network
+    restart: unless-stopped
+
+  # ==========================================================================
+  # React Frontend (Development)
+  # ==========================================================================
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: ucc-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_PYTHON_API_URL=http://localhost:8000
+      - VITE_WS_URL=ws://localhost:8000
+    depends_on:
+      - api
+    networks:
+      - ucc-network
+    profiles:
+      - frontend  # Only start with: docker-compose --profile frontend up
+
+# ==========================================================================
+# Networks
+# ==========================================================================
+networks:
+  ucc-network:
+    driver: bridge
+
+# ==========================================================================
+# Volumes
+# ==========================================================================
+volumes:
+  ucc-data:
+    driver: local
+  redis-data:
+    driver: local

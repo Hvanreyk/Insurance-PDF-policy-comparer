@@ -8,10 +8,16 @@ from pdf_parser import parse_policy_pdf
 from comparison import compare_policies
 from routes.ucc import router as ucc_router
 from routes.raindrop import router as raindrop_router
+from routes.jobs import router as jobs_router
+from websocket_server import setup_websocket_routes
 
 load_dotenv()
 
-app = FastAPI(title="Insurance Policy Parser API")
+app = FastAPI(
+    title="Insurance Policy Parser API",
+    description="API for parsing and comparing insurance policy documents with async job support",
+    version="2.0.0",
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -22,8 +28,13 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
+# Include routers
 app.include_router(ucc_router)
 app.include_router(raindrop_router)
+app.include_router(jobs_router)
+
+# Setup WebSocket routes for real-time progress updates
+setup_websocket_routes(app)
 
 @app.get("/")
 async def root():
