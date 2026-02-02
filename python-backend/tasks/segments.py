@@ -16,8 +16,10 @@ from typing import Any, Dict
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from celery import shared_task
 from celery.exceptions import SoftTimeLimitExceeded
+
+# Import the celery app instance (must be imported before defining tasks)
+from celery_app import app as celery_app
 
 from tasks.callbacks import update_job_progress, on_task_retry
 from ucc.storage.job_store import JobStatus, SEGMENT_NAMES
@@ -56,7 +58,7 @@ def _handle_task_error(task, job_id: str, segment: int, exc: Exception):
 # =============================================================================
 
 
-@shared_task(**TASK_CONFIG)
+@celery_app.task(**TASK_CONFIG)
 def segment_1_document_layout(
     self,
     job_id: str,
@@ -118,7 +120,7 @@ def segment_1_document_layout(
         _handle_task_error(self, job_id, segment, exc)
 
 
-@shared_task(**TASK_CONFIG)
+@celery_app.task(**TASK_CONFIG)
 def segment_2_definitions(
     self,
     prev_result: Dict[str, Any],
@@ -165,7 +167,7 @@ def segment_2_definitions(
         _handle_task_error(self, job_id, segment, exc)
 
 
-@shared_task(**TASK_CONFIG)
+@celery_app.task(**TASK_CONFIG)
 def segment_3_classification(
     self,
     prev_result: Dict[str, Any],
@@ -212,7 +214,7 @@ def segment_3_classification(
         _handle_task_error(self, job_id, segment, exc)
 
 
-@shared_task(**TASK_CONFIG)
+@celery_app.task(**TASK_CONFIG)
 def segment_4_clause_dna(
     self,
     prev_result: Dict[str, Any],
@@ -264,7 +266,7 @@ def segment_4_clause_dna(
 # =============================================================================
 
 
-@shared_task(**TASK_CONFIG)
+@celery_app.task(**TASK_CONFIG)
 def segment_5_semantic_alignment(
     self,
     prev_result: Dict[str, Any],
@@ -315,7 +317,7 @@ def segment_5_semantic_alignment(
         _handle_task_error(self, job_id, segment, exc)
 
 
-@shared_task(**TASK_CONFIG)
+@celery_app.task(**TASK_CONFIG)
 def segment_6_delta_interpretation(
     self,
     prev_result: Dict[str, Any],
@@ -362,7 +364,7 @@ def segment_6_delta_interpretation(
         _handle_task_error(self, job_id, segment, exc)
 
 
-@shared_task(**TASK_CONFIG)
+@celery_app.task(**TASK_CONFIG)
 def segment_7_narrative_summary(
     self,
     prev_result: Dict[str, Any],
