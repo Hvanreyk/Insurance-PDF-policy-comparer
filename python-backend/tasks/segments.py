@@ -2,6 +2,9 @@
 
 Each segment is a Celery task that can be chained together for
 sequential execution with progress tracking.
+
+PDF files are loaded from disk storage using doc_ids, not passed through
+the Celery message queue.
 """
 
 from __future__ import annotations
@@ -18,6 +21,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 
 from tasks.callbacks import update_job_progress, on_task_retry
 from ucc.storage.job_store import JobStatus, SEGMENT_NAMES
+from ucc.storage.pdf_store import load_pdf
 
 
 # Common task decorator with retry configuration
@@ -58,17 +62,16 @@ def segment_1_document_layout(
     job_id: str,
     doc_id: str,
     doc_label: str,
-    pdf_bytes_hex: str,
 ) -> Dict[str, Any]:
     """Segment 1: Document Layout Analysis.
     
     Parses PDF, extracts blocks, removes furniture, applies sections.
+    PDF is loaded from disk storage using doc_id.
     
     Args:
         job_id: Job identifier
-        doc_id: Document identifier
+        doc_id: Document identifier (used to load PDF from storage)
         doc_label: "A" or "B" for progress display
-        pdf_bytes_hex: PDF bytes encoded as hex string
         
     Returns:
         Dict with doc_id for chaining
@@ -79,13 +82,17 @@ def segment_1_document_layout(
     try:
         update_job_progress(job_id, segment, JobStatus.RUNNING, segment_name=segment_name)
         
-        # Convert hex back to bytes
-        pdf_bytes = bytes.fromhex(pdf_bytes_hex)
+        # Load PDF from disk storage
+        print(f"[{job_id}] Loading PDF for doc_id: {doc_id}")
+        pdf_bytes = load_pdf(doc_id)
+        print(f"[{job_id}] Loaded PDF ({len(pdf_bytes)} bytes)")
         
         # Import and run the agent
         from ucc.agents.document_layout import run_document_layout
         
         result = run_document_layout(pdf_bytes, doc_id=doc_id)
+        
+        print(f"[{job_id}] Document layout complete: {len(result.blocks)} blocks")
         
         return {
             "job_id": job_id,
@@ -101,6 +108,12 @@ def segment_1_document_layout(
             error_message=f"Document {doc_label} layout analysis timed out"
         )
         raise
+    except FileNotFoundError as exc:
+        update_job_progress(
+            job_id, segment, JobStatus.FAILED,
+            error_message=f"PDF file not found for doc_id: {doc_id}"
+        )
+        raise exc
     except Exception as exc:
         _handle_task_error(self, job_id, segment, exc)
 
@@ -133,6 +146,8 @@ def segment_2_definitions(
         
         run_definitions_agent(doc_id)
         definitions = get_definitions(doc_id)
+        
+        print(f"[{job_id}] Definitions complete: {len(definitions)} definitions")
         
         return {
             **prev_result,
@@ -179,6 +194,8 @@ def segment_3_classification(
         run_clause_classification(doc_id)
         classifications = get_all_classifications(doc_id)
         
+        print(f"[{job_id}] Classification complete: {len(classifications)} classifications")
+        
         return {
             **prev_result,
             "segment": segment,
@@ -223,6 +240,8 @@ def segment_4_clause_dna(
         
         run_clause_dna_agent(doc_id)
         dna_records = get_all_dna(doc_id)
+        
+        print(f"[{job_id}] Clause DNA complete: {len(dna_records)} DNA records")
         
         return {
             **prev_result,
@@ -275,6 +294,8 @@ def segment_5_semantic_alignment(
         
         result = run_semantic_alignment(doc_id_a, doc_id_b)
         
+        print(f"[{job_id}] Semantic alignment complete: {len(result.alignments)} alignments")
+        
         return {
             "job_id": job_id,
             "doc_id_a": doc_id_a,
@@ -322,6 +343,8 @@ def segment_6_delta_interpretation(
         
         result = run_delta_interpretation(doc_id_a, doc_id_b)
         
+        print(f"[{job_id}] Delta interpretation complete: {len(result.deltas)} deltas")
+        
         return {
             **prev_result,
             "segment": segment,
@@ -367,6 +390,8 @@ def segment_7_narrative_summary(
         
         result = run_narrative_summarisation(doc_id_a, doc_id_b)
         
+        print(f"[{job_id}] Narrative summary complete: {len(result.bullets)} bullets")
+        
         # Build final result
         final_result = {
             "job_id": job_id,
@@ -396,6 +421,8 @@ def segment_7_narrative_summary(
             segment_name="Complete",
             result_data=final_result,
         )
+        
+        print(f"[{job_id}] Job completed successfully!")
         
         return final_result
         

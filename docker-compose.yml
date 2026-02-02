@@ -20,6 +20,7 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - UCC_LAYOUT_DB_PATH=/data/layout.db
       - UCC_JOBS_DB_PATH=/data/jobs.db
+      - UCC_PDF_STORAGE_PATH=/data/pdfs
     volumes:
       - ucc-data:/data
     depends_on:
@@ -49,6 +50,7 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
       - UCC_LAYOUT_DB_PATH=/data/layout.db
       - UCC_JOBS_DB_PATH=/data/jobs.db
+      - UCC_PDF_STORAGE_PATH=/data/pdfs
     volumes:
       - ucc-data:/data
     depends_on:
