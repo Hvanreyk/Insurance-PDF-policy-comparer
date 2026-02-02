@@ -94,6 +94,8 @@ class LayoutStore:
     ) -> PersistedDocument:
         doc_hash = _hash_bytes(pdf_bytes)
         created_at = datetime.now(timezone.utc).isoformat()
+        doc_id_prefix = doc_id[:8]  # Use first 8 chars of doc_id as prefix
+        
         with self._connect() as conn:
             # Note: DB column is 'filename' for backwards compatibility
             conn.execute(
@@ -106,6 +108,8 @@ class LayoutStore:
             conn.execute("DELETE FROM blocks WHERE doc_id = ?", (doc_id,))
             for block in blocks:
                 x0, y0, x1, y1 = block.bbox
+                # Scope block_id with document prefix to ensure uniqueness across documents
+                scoped_block_id = f"{doc_id_prefix}_{block.id}"
                 conn.execute(
                     """
                     INSERT INTO blocks (
@@ -115,7 +119,7 @@ class LayoutStore:
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
-                        block.id,
+                        scoped_block_id,
                         doc_id,
                         block.page_number,
                         float(x0),
