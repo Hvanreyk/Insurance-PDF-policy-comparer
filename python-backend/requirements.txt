@@ -12,3 +12,11 @@ PyYAML==6.0.2
 rapidfuzz==3.9.3
 rank-bm25==0.2.2
 regex==2024.9.11
+
+# Celery + Redis Task Queue
+celery[redis]==5.3.6
+redis==5.0.1
+flower==2.0.1
+
+# WebSocket support
+websockets==12.0
