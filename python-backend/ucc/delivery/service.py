@@ -664,3 +664,154 @@ def get_similarity_summary(
     results.sort(key=lambda x: x.overall_score, reverse=True)
     
     return results
+
+
+# =============================================================================
+# DeliveryService: Constructs full comparison results from persisted data
+# =============================================================================
+
+
+class DeliveryService:
+    """Service for constructing full comparison results from segments 1-7 outputs.
+    
+    Used by the async job system to assemble UCCComparisonResult from persisted
+    alignment, delta, and summary data.
+    """
+
+    def __init__(self):
+        self.layout_store = LayoutStore()
+        self.alignment_store = AlignmentStore()
+        self.delta_store = DeltaStore()
+        self.summary_store = SummaryStore()
+        self.classification_store = ClassificationStore()
+
+    def get_comparison_result(
+        self,
+        doc_id_a: str,
+        doc_id_b: str,
+    ) -> Dict[str, Any]:
+        """Construct full UCCComparisonResult from persisted comparison data.
+        
+        Assembles the result from the outputs of all 7 segments:
+        - Segments 1-4: Document preprocessing (blocks, classifications, DNA)
+        - Segments 5-7: Comparison outputs (alignments, deltas, summary)
+        
+        Args:
+            doc_id_a: First document ID
+            doc_id_b: Second document ID
+            
+        Returns:
+            UCCComparisonResult-compatible dict with all comparison data
+        """
+        # Get alignments
+        alignments = self.alignment_store.get_alignments(doc_id_a, doc_id_b)
+        
+        # Get deltas
+        deltas = self.delta_store.get_deltas(doc_id_a, doc_id_b)
+        
+        # Get summary
+        summary_result = self.summary_store.get_summary(doc_id_a, doc_id_b)
+        
+        # Get blocks for text lookup
+        blocks_a = self.layout_store.get_blocks(doc_id_a)
+        blocks_b = self.layout_store.get_blocks(doc_id_b)
+        
+        text_map_a = {b.id: b.text for b in blocks_a}
+        text_map_b = {b.id: b.text for b in blocks_b}
+        
+        # Get classifications
+        classifications_a = self.classification_store.get_all_classifications(doc_id_a)
+        classifications_b = self.classification_store.get_all_classifications(doc_id_b)
+        
+        class_map_a = {c.block_id: c.clause_type.value for c in classifications_a}
+        class_map_b = {c.block_id: c.clause_type.value for c in classifications_b}
+        
+        # Build matches list (aligned + unmatched)
+        matches = []
+        
+        # Add matched pairs
+        for alignment in alignments:
+            if alignment.alignment_type != AlignmentType.UNMATCHED and alignment.block_id_b:
+                # Find related deltas
+                alignment_deltas = [d for d in deltas 
+                                  if d.block_id_a == alignment.block_id_a 
+                                  and d.block_id_b == alignment.block_id_b]
+                
+                # Determine match status based on deltas
+                status = "unchanged"
+                if alignment_deltas:
+                    # Has deltas = modified
+                    status = "modified"
+                
+                matches.append({
+                    "a_id": alignment.block_id_a,
+                    "b_id": alignment.block_id_b,
+                    "similarity": alignment.alignment_score,
+                    "status": status,
+                    "materiality_score": alignment.confidence,
+                    "a_text": text_map_a.get(alignment.block_id_a, ""),
+                    "b_text": text_map_b.get(alignment.block_id_b, ""),
+                    "a_title": class_map_a.get(alignment.block_id_a, "UNKNOWN"),
+                    "b_title": class_map_b.get(alignment.block_id_b, "UNKNOWN"),
+                })
+        
+        # Add unmatched blocks from A
+        unmapped_a = []
+        for alignment in alignments:
+            if alignment.alignment_type == AlignmentType.UNMATCHED:
+                unmapped_a.append(alignment.block_id_a)
+                matches.append({
+                    "a_id": alignment.block_id_a,
+                    "b_id": None,
+                    "similarity": 0.0,
+                    "status": "removed",
+                    "materiality_score": alignment.confidence,
+                    "a_text": text_map_a.get(alignment.block_id_a, ""),
+                    "b_text": None,
+                    "a_title": class_map_a.get(alignment.block_id_a, "UNKNOWN"),
+                    "b_title": None,
+                })
+        
+        # Identify unmapped B (blocks with no alignment to A)
+        unmapped_b = []
+        matched_b_ids = {a.block_id_b for a in alignments 
+                        if a.block_id_b and a.alignment_type != AlignmentType.UNMATCHED}
+        
+        for block_b in blocks_b:
+            if block_b.id not in matched_b_ids:
+                unmapped_b.append(block_b.id)
+                matches.append({
+                    "a_id": None,
+                    "b_id": block_b.id,
+                    "similarity": 0.0,
+                    "status": "added",
+                    "materiality_score": 0.5,
+                    "a_text": None,
+                    "b_text": text_map_b.get(block_b.id, ""),
+                    "a_title": None,
+                    "b_title": class_map_b.get(block_b.id, "UNKNOWN"),
+                })
+        
+        # Build summary dict
+        summary = {}
+        if summary_result:
+            summary = {
+                "total_bullets": summary_result.counts.total_bullets,
+                "review_needed": summary_result.counts.review_needed,
+                "confidence": summary_result.confidence,
+                "matched_clauses": summary_result.counts.matched_clauses,
+                "unmatched_clauses": summary_result.counts.unmatched_clauses,
+                "deltas_by_type": summary_result.counts.deltas_by_type,
+            }
+        
+        # Build final result matching UCCComparisonResult structure
+        return {
+            "summary": summary,
+            "matches": matches,
+            "unmapped_a": unmapped_a,
+            "unmapped_b": unmapped_b,
+            "warnings": [],
+            "timings_ms": {
+                "total": 0.0,
+            },
+        }
