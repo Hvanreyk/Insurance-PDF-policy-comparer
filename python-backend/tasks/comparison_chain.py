@@ -89,10 +89,10 @@ def build_comparison_chain(
     doc_a_chain = build_document_chain(job_id, doc_id_a, "A")
     
     # Build document B chain (segments 5-8)
-    # Use immutable chain (.i()) so document B doesn't receive document A's result
+    # Use immutable signature (.si()) so document B doesn't receive document A's result
     # This prevents: TypeError: segment_1_document_layout() takes 4 positional arguments but 5 were given
     doc_b_chain_immutable = chain(
-        segment_1_document_layout.i(job_id, doc_id_b, "B"),
+        segment_1_document_layout.si(job_id, doc_id_b, "B"),
         segment_2_definitions.s(),
         segment_3_classification.s(),
         segment_4_clause_dna.s(),
