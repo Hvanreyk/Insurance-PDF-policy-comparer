@@ -89,19 +89,27 @@ def build_comparison_chain(
     doc_a_chain = build_document_chain(job_id, doc_id_a, "A")
     
     # Build document B chain (segments 5-8)
-    doc_b_chain = build_document_chain(job_id, doc_id_b, "B")
+    # Use immutable chain (.i()) so document B doesn't receive document A's result
+    # This prevents: TypeError: segment_1_document_layout() takes 4 positional arguments but 5 were given
+    doc_b_chain_immutable = chain(
+        segment_1_document_layout.i(job_id, doc_id_b, "B"),
+        segment_2_definitions.s(),
+        segment_3_classification.s(),
+        segment_4_clause_dna.s(),
+    )
     
     # Build comparison chain (segments 9-11)
+    # This receives the result from document B's segment 4
     comparison_chain = chain(
         segment_5_semantic_alignment.s(doc_id_a, doc_id_b),
         segment_6_delta_interpretation.s(),
         segment_7_narrative_summary.s(),
     )
     
-    # Chain everything together: A -> B -> Comparison
+    # Chain everything together: A -> B (immutable) -> Comparison
     return chain(
         doc_a_chain,
-        doc_b_chain,
+        doc_b_chain_immutable,
         comparison_chain,
     )
 
