@@ -235,6 +235,20 @@ def segment_4_clause_dna(
     segment = 4 if doc_label == "A" else 8
     segment_name = SEGMENT_NAMES.get(segment, f"Document {doc_label}: Clause DNA")
     
+    # #region agent log
+    import json as _json4, time as _time4
+    _log_path4 = "/Users/hudsonvanreyk/Desktop/Insurance Comparator/Insurance-PDF-policy-comparer/.cursor/debug.log"
+    def _dbg4(loc, msg, data=None, hyp=""):
+        try:
+            import os as _os4
+            _os4.makedirs(_os4.path.dirname(_log_path4), exist_ok=True)
+            with open(_log_path4, "a") as _f:
+                _f.write(_json4.dumps({"location": loc, "message": msg, "data": data or {}, "hypothesisId": hyp, "timestamp": int(_time4.time()*1000)}) + "\n")
+        except Exception as _e:
+            print(f"[DEBUG LOG ERROR] {_e}")
+    _dbg4("segments.py:seg4_entry", "segment_4 ENTERED (code is fresh)", {"doc_label": doc_label, "doc_id": doc_id, "job_id": job_id}, "H4_verify")
+    # #endregion
+    
     try:
         update_job_progress(job_id, segment, JobStatus.RUNNING, segment_name=segment_name)
         
@@ -244,6 +258,15 @@ def segment_4_clause_dna(
         dna_records = get_all_dna(doc_id)
         
         print(f"[{job_id}] Clause DNA complete: {len(dna_records)} DNA records")
+        
+        # #region agent log
+        _ret4 = {
+            **prev_result,
+            "segment": segment,
+            "dna_count": len(dna_records),
+        }
+        _dbg4("segments.py:seg4_returning", "segment_4 RETURNING", {"doc_label": doc_label, "ret_keys": list(_ret4.keys()), "dna_count": len(dna_records)}, "H4_verify")
+        # #endregion
         
         return {
             **prev_result,
@@ -289,16 +312,42 @@ def segment_5_semantic_alignment(
     segment = 9
     segment_name = SEGMENT_NAMES.get(segment, "Semantic Alignment")
     
+    # #region agent log
+    import json as _json, time as _time, os as _os
+    _log_path = "/Users/hudsonvanreyk/Desktop/Insurance Comparator/Insurance-PDF-policy-comparer/.cursor/debug.log"
+    def _dbg(loc, msg, data=None, hyp=""):
+        try:
+            _os.makedirs(_os.path.dirname(_log_path), exist_ok=True)
+            with open(_log_path, "a") as _f:
+                _f.write(_json.dumps({"location": loc, "message": msg, "data": data or {}, "hypothesisId": hyp, "timestamp": int(_time.time()*1000)}) + "\n")
+        except Exception as _e:
+            print(f"[DEBUG LOG ERROR] {_e}")
+    _dbg("segments.py:seg5_entry", "segment_5 ENTERED", {"prev_result": str(prev_result)[:500], "doc_id_a": doc_id_a, "doc_id_b": doc_id_b, "job_id": job_id}, "H4")
+    # #endregion
+    
     try:
         update_job_progress(job_id, segment, JobStatus.RUNNING, segment_name=segment_name)
         
+        # #region agent log
+        _dbg("segments.py:seg5_before_import", "About to import run_semantic_alignment", {}, "H3")
+        # #endregion
+        
         from ucc.agents.semantic_alignment import run_semantic_alignment
+        
+        # #region agent log
+        _dbg("segments.py:seg5_before_run", "About to call run_semantic_alignment", {"doc_id_a": doc_id_a, "doc_id_b": doc_id_b}, "H3")
+        _t0 = _time.time()
+        # #endregion
         
         result = run_semantic_alignment(doc_id_a, doc_id_b)
         
+        # #region agent log
+        _dbg("segments.py:seg5_after_run", "run_semantic_alignment COMPLETED", {"elapsed_s": round(_time.time() - _t0, 2), "alignment_count": len(result.alignments), "stats": result.stats}, "H3")
+        # #endregion
+        
         print(f"[{job_id}] Semantic alignment complete: {len(result.alignments)} alignments")
         
-        return {
+        ret = {
             "job_id": job_id,
             "doc_id_a": doc_id_a,
             "doc_id_b": doc_id_b,
@@ -307,13 +356,25 @@ def segment_5_semantic_alignment(
             "stats": result.stats,
         }
         
+        # #region agent log
+        _dbg("segments.py:seg5_returning", "segment_5 RETURNING result", {"ret_keys": list(ret.keys())}, "H5")
+        # #endregion
+        
+        return ret
+        
     except SoftTimeLimitExceeded:
+        # #region agent log
+        _dbg("segments.py:seg5_timeout", "segment_5 SOFT TIME LIMIT EXCEEDED", {}, "H3")
+        # #endregion
         update_job_progress(
             job_id, segment, JobStatus.FAILED,
             error_message="Semantic alignment timed out"
         )
         raise
     except Exception as exc:
+        # #region agent log
+        _dbg("segments.py:seg5_exception", "segment_5 EXCEPTION", {"type": type(exc).__name__, "msg": str(exc)[:500], "retry": self.request.retries}, "H3")
+        # #endregion
         _handle_task_error(self, job_id, segment, exc)
 
 
@@ -332,6 +393,19 @@ def segment_6_delta_interpretation(
     Returns:
         Dict with delta results for chaining
     """
+    # #region agent log
+    import json as _json, time as _time, os as _os
+    _log_path = "/Users/hudsonvanreyk/Desktop/Insurance Comparator/Insurance-PDF-policy-comparer/.cursor/debug.log"
+    def _dbg(loc, msg, data=None, hyp=""):
+        try:
+            _os.makedirs(_os.path.dirname(_log_path), exist_ok=True)
+            with open(_log_path, "a") as _f:
+                _f.write(_json.dumps({"location": loc, "message": msg, "data": data or {}, "hypothesisId": hyp, "timestamp": int(_time.time()*1000)}) + "\n")
+        except Exception as _e:
+            print(f"[DEBUG LOG ERROR] {_e}")
+    _dbg("segments.py:seg6_entry", "segment_6 ENTERED", {"prev_result_keys": list(prev_result.keys()) if prev_result else "None"}, "H5")
+    # #endregion
+    
     job_id = prev_result["job_id"]
     doc_id_a = prev_result["doc_id_a"]
     doc_id_b = prev_result["doc_id_b"]
