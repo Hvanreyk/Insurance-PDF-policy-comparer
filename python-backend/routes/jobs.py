@@ -194,22 +194,18 @@ async def get_job_result_endpoint(job_id: str) -> Dict[str, Any]:
             }
         )
     
-    # Get the persisted result from the job store
-    result = job_store.get_result(job_id)
-    
-    if result is None:
-        # Fetch from delivery service if not in job store
-        try:
-            delivery = DeliveryService()
-            full_result = delivery.get_comparison_result(job.doc_id_a, job.doc_id_b)
-            return full_result
-        except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to retrieve comparison result: {e}"
-            )
-    
-    return result
+    # Always use the DeliveryService to assemble a properly shaped result
+    # from the persisted segment outputs (matches the frontend UCCComparisonResult type).
+    # The raw Celery task result stored in job_store has a different shape.
+    try:
+        delivery = DeliveryService()
+        full_result = delivery.get_comparison_result(job.doc_id_a, job.doc_id_b)
+        return full_result
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve comparison result: {e}"
+        )
 
 
 @router.post("/{job_id}/cancel", response_model=JobCancelResponse)

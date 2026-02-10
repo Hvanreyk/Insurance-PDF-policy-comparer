@@ -792,17 +792,32 @@ class DeliveryService:
                     "b_title": class_map_b.get(block_b.id, "UNKNOWN"),
                 })
         
-        # Build summary dict
-        summary = {}
-        if summary_result:
-            summary = {
-                "total_bullets": summary_result.counts.total_bullets,
-                "review_needed": summary_result.counts.review_needed,
-                "confidence": summary_result.confidence,
-                "matched_clauses": summary_result.counts.matched_clauses,
-                "unmatched_clauses": summary_result.counts.unmatched_clauses,
-                "deltas_by_type": summary_result.counts.deltas_by_type,
-            }
+        # Count statuses for the summary
+        status_counts = {"added": 0, "removed": 0, "modified": 0, "unchanged": 0}
+        for m in matches:
+            s = m.get("status", "unchanged")
+            if s in status_counts:
+                status_counts[s] += 1
+        
+        # Build summary bullets from the narrative summary
+        bullets: list[str] = []
+        if summary_result and summary_result.bullets:
+            bullets = [b.text if hasattr(b, "text") else str(b) for b in summary_result.bullets]
+        
+        # Build summary dict matching frontend Summary type
+        summary = {
+            "counts": status_counts,
+            "bullets": bullets,
+        }
+        
+        # Ensure every match has all required fields for the frontend ClauseMatch type
+        for m in matches:
+            m.setdefault("token_diff", None)
+            m.setdefault("numeric_delta", None)
+            m.setdefault("strictness_delta", 0)
+            m.setdefault("review_required", False)
+            m.setdefault("evidence", {})
+            m.setdefault("clause_type", m.get("a_title") or m.get("b_title") or "UNCERTAIN")
         
         # Build final result matching UCCComparisonResult structure
         return {
@@ -812,6 +827,10 @@ class DeliveryService:
             "unmapped_b": unmapped_b,
             "warnings": [],
             "timings_ms": {
+                "parse_a": 0.0,
+                "parse_b": 0.0,
+                "align": 0.0,
+                "diff": 0.0,
                 "total": 0.0,
             },
         }
