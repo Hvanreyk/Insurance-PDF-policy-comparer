@@ -4,6 +4,10 @@ Aligns like-to-like clauses across two policy documents in a way that reflects
 legal intent, not superficial wording similarity.
 """
 
+# #region agent log
+print("[AGENT-CANARY] semantic_alignment.py MODULE LOADED - instrumented code is active")
+# #endregion
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -323,7 +327,20 @@ def filter_candidates(
     """
     candidates: List[Tuple[Dict[str, Any], Dict[str, Any]]] = []
     
-    for block_a in blocks_a:
+    # #region agent log
+    _total_outer = len(blocks_a)
+    _progress_interval = max(1, _total_outer // 10)
+    import time as _t_fc
+    _fc_start = _t_fc.time()
+    _inner_iters = 0
+    # #endregion
+    
+    for _i_a, block_a in enumerate(blocks_a):
+        # #region agent log
+        if _i_a % _progress_interval == 0:
+            print(f"[AGENT] filter_candidates progress: {_i_a}/{_total_outer} outer blocks, {len(candidates):,} candidates so far, {_inner_iters:,} inner iters ({round(_t_fc.time()-_fc_start,1)}s)", flush=True)
+        # #endregion
+        
         type_a = classifications_a.get(block_a["id"], "UNCERTAIN")
         
         # Skip ADMIN
@@ -335,6 +352,10 @@ def filter_candidates(
             continue
         
         for block_b in blocks_b:
+            # #region agent log
+            _inner_iters += 1
+            # #endregion
+            
             type_b = classifications_b.get(block_b["id"], "UNCERTAIN")
             
             # Must match clause type
@@ -355,6 +376,10 @@ def filter_candidates(
                 continue
             
             candidates.append((block_a, block_b))
+    
+    # #region agent log
+    print(f"[AGENT] filter_candidates DONE: {len(candidates):,} total candidates, {_inner_iters:,} inner iterations in {round(_t_fc.time()-_fc_start,1)}s", flush=True)
+    # #endregion
     
     return candidates
 
@@ -492,6 +517,11 @@ def run_semantic_alignment(
     _dbg("semantic_alignment.py:entry", "run_semantic_alignment ENTERED", {"doc_id_a": doc_id_a, "doc_id_b": doc_id_b}, "H1")
     # #endregion
     
+    # #region agent log
+    import sys as _sys; _sys.stdout.flush()
+    print(f"[AGENT] run_semantic_alignment ENTERED doc_id_a={doc_id_a[:12]}... doc_id_b={doc_id_b[:12]}...", flush=True)
+    # #endregion
+    
     # Load data for both documents
     blocks_a, classifications_a, dna_map_a, expanded_map_a = _load_document_data(doc_id_a)
     blocks_b, classifications_b, dna_map_b, expanded_map_b = _load_document_data(doc_id_b)
@@ -520,6 +550,13 @@ def run_semantic_alignment(
     }, "H1")
     # #endregion
     
+    # #region agent log
+    print(f"[AGENT] Data loaded: blocks_a={len(blocks_a)}, blocks_b={len(blocks_b)}, clf_a={len(classifications_a)}, clf_b={len(classifications_b)}", flush=True)
+    print(f"[AGENT] Classification types A: {dict(_type_counts_a)}", flush=True)
+    print(f"[AGENT] Classification types B: {dict(_type_counts_b)}", flush=True)
+    print(f"[AGENT] Potential nested-loop iterations: {len(blocks_a)} x {len(blocks_b)} = {len(blocks_a)*len(blocks_b):,}", flush=True)
+    # #endregion
+    
     if not blocks_a:
         raise ValueError(f"No blocks found for doc_id_a: {doc_id_a}")
     if not blocks_b:
@@ -528,15 +565,18 @@ def run_semantic_alignment(
     # Filter candidates
     # #region agent log
     _t_filter = _time.time()
+    print(f"[AGENT] Starting filter_candidates...", flush=True)
     # #endregion
     candidate_pairs = filter_candidates(
         blocks_a, blocks_b, classifications_a, classifications_b
     )
     # #region agent log
+    _filter_elapsed = round(_time.time() - _t_filter, 3)
     _dbg("semantic_alignment.py:after_filter", "filter_candidates complete", {
         "candidate_pair_count": len(candidate_pairs),
-        "elapsed_s": round(_time.time() - _t_filter, 3),
+        "elapsed_s": _filter_elapsed,
     }, "H2")
+    print(f"[AGENT] filter_candidates complete: {len(candidate_pairs):,} pairs in {_filter_elapsed}s", flush=True)
     # #endregion
     
     if not candidate_pairs:
@@ -598,6 +638,7 @@ def run_semantic_alignment(
         "dna_miss_a": _dna_miss_a,
         "dna_miss_b": _dna_miss_b,
     }, "H1")
+    print(f"[AGENT] CandidatePair objects built: {len(candidates):,} (from {len(candidate_pairs):,} filtered, dna_miss_a={_dna_miss_a}, dna_miss_b={_dna_miss_b})", flush=True)
     # #endregion
     
     if not candidates:
@@ -631,15 +672,18 @@ def run_semantic_alignment(
         "total_candidates": len(candidates),
     }, "H2")
     _t_sim = _time.time()
+    print(f"[AGENT] Starting TF-IDF similarity: {len(unique_texts_a)} x {len(unique_texts_b)} unique texts...", flush=True)
     # #endregion
     
     sim_matrix = compute_semantic_similarity(unique_texts_a, unique_texts_b)
     
     # #region agent log
+    _sim_elapsed = round(_time.time() - _t_sim, 3)
     _dbg("semantic_alignment.py:after_tfidf", "TF-IDF similarity computed", {
-        "elapsed_s": round(_time.time() - _t_sim, 3),
+        "elapsed_s": _sim_elapsed,
         "matrix_shape": list(sim_matrix.shape) if hasattr(sim_matrix, 'shape') else "unknown",
     }, "H2")
+    print(f"[AGENT] TF-IDF complete: matrix={sim_matrix.shape if hasattr(sim_matrix,'shape') else '?'} in {_sim_elapsed}s", flush=True)
     # #endregion
     
     # Build index maps
@@ -685,10 +729,12 @@ def run_semantic_alignment(
         ))
     
     # #region agent log
+    _score_elapsed = round(_time.time() - _t_score, 3)
     _dbg("semantic_alignment.py:after_scoring", "All candidates scored", {
         "scored_count": len(scored_candidates),
-        "elapsed_s": round(_time.time() - _t_score, 3),
+        "elapsed_s": _score_elapsed,
     }, "H2")
+    print(f"[AGENT] Scoring complete: {len(scored_candidates):,} scored in {_score_elapsed}s", flush=True)
     # #endregion
     
     # Perform bipartite matching
@@ -698,10 +744,12 @@ def run_semantic_alignment(
     matched = bipartite_match(scored_candidates)
     matched_block_ids_a = {m.pair.block_id_a for m in matched}
     # #region agent log
+    _match_elapsed = round(_time.time() - _t_match, 3)
     _dbg("semantic_alignment.py:after_bipartite", "Bipartite matching done", {
         "matched_count": len(matched),
-        "elapsed_s": round(_time.time() - _t_match, 3),
+        "elapsed_s": _match_elapsed,
     }, "H2")
+    print(f"[AGENT] Bipartite matching done: {len(matched)} matches in {_match_elapsed}s", flush=True)
     # #endregion
     
     # Create alignments

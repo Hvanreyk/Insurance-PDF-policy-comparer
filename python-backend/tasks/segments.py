@@ -21,6 +21,10 @@ from celery.exceptions import SoftTimeLimitExceeded
 # Import the celery app instance (must be imported before defining tasks)
 from celery_app import app as celery_app
 
+# #region agent log
+print("[AGENT-CANARY] segments.py MODULE LOADED - instrumented code is active")
+# #endregion
+
 from tasks.callbacks import update_job_progress, on_task_retry
 from ucc.storage.job_store import JobStatus, SEGMENT_NAMES
 from ucc.storage.pdf_store import load_pdf
