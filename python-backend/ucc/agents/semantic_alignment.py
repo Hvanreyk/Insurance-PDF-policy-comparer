@@ -3,12 +3,11 @@
 Aligns like-to-like clauses across two policy documents in a way that reflects
 legal intent, not superficial wording similarity.
 """
+from __future__ import annotations
 
 # #region agent log
 print("[AGENT-CANARY] semantic_alignment.py MODULE LOADED - instrumented code is active")
 # #endregion
-
-from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, Dict, List, Set, Tuple
