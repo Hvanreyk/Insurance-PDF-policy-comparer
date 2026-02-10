@@ -479,9 +479,46 @@ def run_semantic_alignment(
     Raises:
         ValueError: If no blocks found for either document.
     """
+    # #region agent log
+    import json as _json, time as _time, os as _os
+    _log_path = "/Users/hudsonvanreyk/Desktop/Insurance Comparator/Insurance-PDF-policy-comparer/.cursor/debug.log"
+    def _dbg(loc, msg, data=None, hyp=""):
+        try:
+            _os.makedirs(_os.path.dirname(_log_path), exist_ok=True)
+            with open(_log_path, "a") as _f:
+                _f.write(_json.dumps({"location": loc, "message": msg, "data": data or {}, "hypothesisId": hyp, "timestamp": int(_time.time()*1000)}) + "\n")
+        except Exception as _e:
+            print(f"[DEBUG LOG ERROR] {_e}")
+    _dbg("semantic_alignment.py:entry", "run_semantic_alignment ENTERED", {"doc_id_a": doc_id_a, "doc_id_b": doc_id_b}, "H1")
+    # #endregion
+    
     # Load data for both documents
     blocks_a, classifications_a, dna_map_a, expanded_map_a = _load_document_data(doc_id_a)
     blocks_b, classifications_b, dna_map_b, expanded_map_b = _load_document_data(doc_id_b)
+    
+    # #region agent log
+    _dbg("semantic_alignment.py:after_load", "Data loaded", {
+        "blocks_a": len(blocks_a), "blocks_b": len(blocks_b),
+        "classifications_a": len(classifications_a), "classifications_b": len(classifications_b),
+        "dna_map_a": len(dna_map_a), "dna_map_b": len(dna_map_b),
+        "expanded_map_a": len(expanded_map_a), "expanded_map_b": len(expanded_map_b),
+        "sample_block_ids_a": [b["id"] for b in blocks_a[:3]],
+        "sample_clf_keys_a": list(classifications_a.keys())[:3],
+        "sample_dna_keys_a": list(dna_map_a.keys())[:3],
+        "clf_type_counts_a": {},
+        "clf_type_counts_b": {},
+    }, "H1")
+    # Count classification types
+    from collections import Counter
+    _type_counts_a = Counter(classifications_a.values())
+    _type_counts_b = Counter(classifications_b.values())
+    _unclassified_a = len(blocks_a) - len(classifications_a)
+    _unclassified_b = len(blocks_b) - len(classifications_b)
+    _dbg("semantic_alignment.py:clf_types", "Classification type distributions", {
+        "type_counts_a": dict(_type_counts_a), "type_counts_b": dict(_type_counts_b),
+        "unclassified_a": _unclassified_a, "unclassified_b": _unclassified_b,
+    }, "H1")
+    # #endregion
     
     if not blocks_a:
         raise ValueError(f"No blocks found for doc_id_a: {doc_id_a}")
@@ -489,12 +526,24 @@ def run_semantic_alignment(
         raise ValueError(f"No blocks found for doc_id_b: {doc_id_b}")
     
     # Filter candidates
+    # #region agent log
+    _t_filter = _time.time()
+    # #endregion
     candidate_pairs = filter_candidates(
         blocks_a, blocks_b, classifications_a, classifications_b
     )
+    # #region agent log
+    _dbg("semantic_alignment.py:after_filter", "filter_candidates complete", {
+        "candidate_pair_count": len(candidate_pairs),
+        "elapsed_s": round(_time.time() - _t_filter, 3),
+    }, "H2")
+    # #endregion
     
     if not candidate_pairs:
         # No valid candidates - all blocks are unmatched
+        # #region agent log
+        _dbg("semantic_alignment.py:no_candidates", "No candidate pairs - creating unmatched", {}, "H2")
+        # #endregion
         alignments = _create_unmatched_alignments(
             doc_id_a, doc_id_b, blocks_a, classifications_a, dna_map_a
         )
@@ -510,11 +559,19 @@ def run_semantic_alignment(
     
     # Build candidate pairs with all required data
     candidates: List[CandidatePair] = []
+    # #region agent log
+    _dna_miss_a = 0
+    _dna_miss_b = 0
+    # #endregion
     for block_a, block_b in candidate_pairs:
         dna_a = dna_map_a.get(block_a["id"])
         dna_b = dna_map_b.get(block_b["id"])
         
         if not dna_a or not dna_b:
+            # #region agent log
+            if not dna_a: _dna_miss_a += 1
+            if not dna_b: _dna_miss_b += 1
+            # #endregion
             continue
         
         expanded_a = expanded_map_a.get(block_a["id"], block_a["text"])
@@ -534,7 +591,19 @@ def run_semantic_alignment(
             section_path_b=block_b.get("section_path", []),
         ))
     
+    # #region agent log
+    _dbg("semantic_alignment.py:after_build_candidates", "CandidatePair objects built", {
+        "candidate_pairs_in": len(candidate_pairs),
+        "candidates_with_dna": len(candidates),
+        "dna_miss_a": _dna_miss_a,
+        "dna_miss_b": _dna_miss_b,
+    }, "H1")
+    # #endregion
+    
     if not candidates:
+        # #region agent log
+        _dbg("semantic_alignment.py:no_candidates_dna", "No candidates after DNA filter", {}, "H1")
+        # #endregion
         alignments = _create_unmatched_alignments(
             doc_id_a, doc_id_b, blocks_a, classifications_a, dna_map_a
         )
@@ -556,7 +625,22 @@ def run_semantic_alignment(
     unique_texts_a = list(dict.fromkeys(texts_a))
     unique_texts_b = list(dict.fromkeys(texts_b))
     
+    # #region agent log
+    _dbg("semantic_alignment.py:before_tfidf", "About to compute TF-IDF similarity", {
+        "unique_texts_a": len(unique_texts_a), "unique_texts_b": len(unique_texts_b),
+        "total_candidates": len(candidates),
+    }, "H2")
+    _t_sim = _time.time()
+    # #endregion
+    
     sim_matrix = compute_semantic_similarity(unique_texts_a, unique_texts_b)
+    
+    # #region agent log
+    _dbg("semantic_alignment.py:after_tfidf", "TF-IDF similarity computed", {
+        "elapsed_s": round(_time.time() - _t_sim, 3),
+        "matrix_shape": list(sim_matrix.shape) if hasattr(sim_matrix, 'shape') else "unknown",
+    }, "H2")
+    # #endregion
     
     # Build index maps
     text_to_idx_a = {t: i for i, t in enumerate(unique_texts_a)}
@@ -564,6 +648,10 @@ def run_semantic_alignment(
     
     # Score all candidates
     scored_candidates: List[ScoredCandidate] = []
+    
+    # #region agent log
+    _t_score = _time.time()
+    # #endregion
     
     for candidate in candidates:
         # Section similarity
@@ -596,9 +684,25 @@ def run_semantic_alignment(
             penalties=penalties,
         ))
     
+    # #region agent log
+    _dbg("semantic_alignment.py:after_scoring", "All candidates scored", {
+        "scored_count": len(scored_candidates),
+        "elapsed_s": round(_time.time() - _t_score, 3),
+    }, "H2")
+    # #endregion
+    
     # Perform bipartite matching
+    # #region agent log
+    _t_match = _time.time()
+    # #endregion
     matched = bipartite_match(scored_candidates)
     matched_block_ids_a = {m.pair.block_id_a for m in matched}
+    # #region agent log
+    _dbg("semantic_alignment.py:after_bipartite", "Bipartite matching done", {
+        "matched_count": len(matched),
+        "elapsed_s": round(_time.time() - _t_match, 3),
+    }, "H2")
+    # #endregion
     
     # Create alignments
     alignments: List[ClauseAlignment] = []
@@ -666,6 +770,13 @@ def run_semantic_alignment(
     store = AlignmentStore()
     store.clear_alignments(doc_id_a, doc_id_b)
     store.persist_alignments(alignments)
+    
+    # #region agent log
+    _dbg("semantic_alignment.py:returning", "run_semantic_alignment RETURNING", {
+        "alignment_count": len(alignments),
+        "stats": stats,
+    }, "H5")
+    # #endregion
     
     return AlignmentResult(
         doc_id_a=doc_id_a,
