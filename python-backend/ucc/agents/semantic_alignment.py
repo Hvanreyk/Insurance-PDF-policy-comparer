@@ -55,6 +55,11 @@ ONE_TO_MANY_THRESHOLD = 0.85
 LENGTH_RATIO_MIN = 0.5
 LENGTH_RATIO_MAX = 2.0
 
+# Candidate filtering guards
+MIN_BLOCK_TEXT_LENGTH = 30           # Skip trivial blocks (headers, page nums)
+MAX_CANDIDATES_PER_BLOCK = 50       # Cap candidates per block_a
+MAX_TOTAL_CANDIDATES = 50_000       # Global cap to prevent OOM
+
 # Penalties
 CARVE_OUT_DIFF_PENALTY = 0.10
 BURDEN_SHIFT_DIFF_PENALTY = 0.08
@@ -321,64 +326,98 @@ def filter_candidates(
 ) -> List[Tuple[Dict[str, Any], Dict[str, Any]]]:
     """
     Filter candidate pairs based on hard constraints:
-    - Same clause type
+    - Same clause type (pre-indexed for O(n+m) grouping)
     - Neither is ADMIN
-    - Length ratio in [0.5, 2.0]
+    - Text length >= MIN_BLOCK_TEXT_LENGTH (skip trivial blocks)
+    - Length ratio in [LENGTH_RATIO_MIN, LENGTH_RATIO_MAX]
+    - Per-block and global candidate caps to prevent OOM
     """
-    candidates: List[Tuple[Dict[str, Any], Dict[str, Any]]] = []
+    from collections import defaultdict
     
     # #region agent log
-    _total_outer = len(blocks_a)
-    _progress_interval = max(1, _total_outer // 10)
     import time as _t_fc
     _fc_start = _t_fc.time()
-    _inner_iters = 0
     # #endregion
     
-    for _i_a, block_a in enumerate(blocks_a):
-        # #region agent log
-        if _i_a % _progress_interval == 0:
-            print(f"[AGENT] filter_candidates progress: {_i_a}/{_total_outer} outer blocks, {len(candidates):,} candidates so far, {_inner_iters:,} inner iters ({round(_t_fc.time()-_fc_start,1)}s)", flush=True)
-        # #endregion
-        
+    # ---- Step 1: Pre-index blocks_b by clause type (O(m)) ----
+    type_groups_b: Dict[str, List[Tuple[Dict[str, Any], int]]] = defaultdict(list)
+    _skipped_b_admin = 0
+    _skipped_b_short = 0
+    
+    for block_b in blocks_b:
+        type_b = classifications_b.get(block_b["id"], "UNCERTAIN")
+        if type_b == ClauseType.ADMIN.value:
+            _skipped_b_admin += 1
+            continue
+        text_b = block_b.get("text", "")
+        len_b = len(text_b)
+        if len_b < MIN_BLOCK_TEXT_LENGTH:
+            _skipped_b_short += 1
+            continue
+        type_groups_b[type_b].append((block_b, len_b))
+    
+    # #region agent log
+    _eligible_b = sum(len(v) for v in type_groups_b.values())
+    print(f"[AGENT] filter_candidates: indexed {_eligible_b} eligible B blocks across {len(type_groups_b)} types (skipped {_skipped_b_admin} ADMIN, {_skipped_b_short} short)", flush=True)
+    # #endregion
+    
+    # ---- Step 2: For each block_a, find matching candidates from its type group ----
+    candidates: List[Tuple[Dict[str, Any], Dict[str, Any]]] = []
+    _skipped_a_admin = 0
+    _skipped_a_short = 0
+    _inner_iters = 0
+    _capped_blocks = 0
+    
+    for block_a in blocks_a:
         type_a = classifications_a.get(block_a["id"], "UNCERTAIN")
-        
-        # Skip ADMIN
         if type_a == ClauseType.ADMIN.value:
+            _skipped_a_admin += 1
             continue
         
-        len_a = len(block_a.get("text", ""))
-        if len_a == 0:
+        text_a = block_a.get("text", "")
+        len_a = len(text_a)
+        if len_a < MIN_BLOCK_TEXT_LENGTH:
+            _skipped_a_short += 1
             continue
         
-        for block_b in blocks_b:
-            # #region agent log
+        # Only compare with blocks of the same clause type
+        group_b = type_groups_b.get(type_a, [])
+        
+        block_candidates: List[Tuple[Dict[str, Any], float]] = []
+        for block_b, len_b in group_b:
             _inner_iters += 1
-            # #endregion
-            
-            type_b = classifications_b.get(block_b["id"], "UNCERTAIN")
-            
-            # Must match clause type
-            if type_a != type_b:
-                continue
-            
-            # Skip ADMIN
-            if type_b == ClauseType.ADMIN.value:
-                continue
-            
-            len_b = len(block_b.get("text", ""))
-            if len_b == 0:
-                continue
-            
-            # Length ratio constraint
             ratio = len_a / len_b
             if ratio < LENGTH_RATIO_MIN or ratio > LENGTH_RATIO_MAX:
                 continue
-            
+            # Score by length closeness for per-block cap ranking
+            length_closeness = 1.0 - abs(len_a - len_b) / max(len_a, len_b)
+            block_candidates.append((block_b, length_closeness))
+        
+        # Per-block cap: keep top candidates by length closeness
+        if len(block_candidates) > MAX_CANDIDATES_PER_BLOCK:
+            block_candidates.sort(key=lambda x: x[1], reverse=True)
+            block_candidates = block_candidates[:MAX_CANDIDATES_PER_BLOCK]
+            _capped_blocks += 1
+        
+        for block_b, _ in block_candidates:
             candidates.append((block_a, block_b))
+        
+        # Global cap
+        if len(candidates) >= MAX_TOTAL_CANDIDATES:
+            # #region agent log
+            print(f"[AGENT] filter_candidates: HIT global cap {MAX_TOTAL_CANDIDATES:,} at block_a index, truncating", flush=True)
+            # #endregion
+            break
     
     # #region agent log
-    print(f"[AGENT] filter_candidates DONE: {len(candidates):,} total candidates, {_inner_iters:,} inner iterations in {round(_t_fc.time()-_fc_start,1)}s", flush=True)
+    print(
+        f"[AGENT] filter_candidates DONE: {len(candidates):,} candidates, "
+        f"{_inner_iters:,} inner iters, "
+        f"skipped A: {_skipped_a_admin} ADMIN + {_skipped_a_short} short, "
+        f"capped_blocks: {_capped_blocks}, "
+        f"time: {round(_t_fc.time()-_fc_start, 2)}s",
+        flush=True,
+    )
     # #endregion
     
     return candidates
